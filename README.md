@@ -6,11 +6,21 @@
 
 ## What is Eigenstate?
 
-Eigenstate is a choose-your-own-adventure narrative game where the story is shaped by its community — and the community's influence is earned, not assumed.
+Eigenstate is a community-driven narrative game where players collectively steer a story across an endless chain of parallel universes.
 
-Each chapter presents a crisis. Players vote on how the story progresses. The community either finds the winning path together, or the universe collapses — and the story resets in a new parallel world, with new relationships, new stakes, and hard-won wisdom carried forward by the players who got them there.
+Each chapter presents a choice.
 
-All voting is transparent and immutable on the XRP Ledger.
+Players vote on what happens next.
+
+The community's decisions shape the fate of the current universe, revealing clues, relationships, and hidden truths. Eventually every universe ends — sometimes through triumph, sometimes through disaster, sometimes through choices whose consequences are not understood until much later.
+
+When a universe ends, the characters forget.
+
+The players do not.
+
+The real progression of Eigenstate is not the survival of any single universe. It is the community's accumulated understanding of a deeper mystery unfolding across all of them.
+
+Every vote is recorded transparently on the XRP Ledger, creating a permanent history of the community's influence on reality.
 
 ---
 
@@ -22,7 +32,9 @@ They are called **Eigenthropes** (from *eigen*, meaning "characteristic" or "sel
 
 Their relationships shift with every universe. Friends. Enemies. Strangers. Lovers. Parent and child. The same three people, infinite configurations.
 
-The players are the fourth force — unseen, unremembered, but decisive.
+The players are not outside the story.
+
+The players are part of the story.
 
 ---
 
@@ -41,13 +53,20 @@ This is not a follower economy. It is a judgment economy. Players who have consi
 
 ### Community Pathfinding
 
-Each chapter presents the community with a choice. The weighted vote determines the outcome. The story advances — or it doesn't.
+Each chapter presents the community with a decision.
 
-**Win condition:** The community guides the Eigenthropes to resolve the crisis of this universe.
+Weighted votes determine which possibility becomes reality.
 
-**Collapse condition:** The wrong paths accumulate, the universe becomes untenable, and the Eigenthropes slip — resetting to a new eigenstate with new relationships and a fresh crisis.
+The community is not searching for a single "correct" path. Different choices reveal different consequences, relationships, and clues about the larger mystery.
 
-A collapse is not a failure state. It is canon. The Eigenthropes don't remember, but the players do. That accumulated meta-knowledge is the real game.
+Some universes last longer than others.
+
+Some end in apparent victory.
+
+Some end in catastrophe.
+
+All eventually become part of the same larger story.
+
 
 ### On-Chain Transparency
 
