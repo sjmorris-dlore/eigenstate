@@ -10,6 +10,10 @@ function toHex(str: string) {
 export async function POST(request: NextRequest) {
   const { universe, chapter, choicePoint, choice, account } = await request.json()
 
+  if (!process.env.EIGENTHROPE_VAULT_ADDRESS) {
+    return Response.json({ error: 'EIGENTHROPE_VAULT_ADDRESS not set' }, { status: 500 })
+  }
+
   const memoData = JSON.stringify({
     universe,
     chapter,
