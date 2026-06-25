@@ -25,6 +25,28 @@
 
 ---
 
+## Wallet Connection Value Proposition (Design Consideration)
+
+Connecting a Xaman wallet requires downloading a mobile app and acquiring a small amount of XRP (~1 XRP for reserve). This is meaningful friction. The connection needs to deliver enough value that players feel it was worth the effort.
+
+### What the Wallet Gives You (Beyond Voting)
+
+**Identity across universes.** Your wallet address is your persistent Observer identity. It doesn't reset when a universe collapses. Your history — every choice you made, every clue you witnessed being discovered — is readable on-chain forever. No platform can revoke it.
+
+**Resonance score.** Your participation weight grows with every vote, compounding across universes. A wallet that has been observing since Universe 1 carries more narrative gravity than a new one. This is a visible, on-chain reputation that belongs entirely to the holder.
+
+**Resonance tiers (possibility).** Thresholds could unlock cosmetic or narrative distinctions — a title, a UI treatment, access to lore that new players don't yet see. Not pay-to-win, but acknowledgment of depth of engagement.
+
+**Discovery attribution.** When a clue is discovered, the on-chain record shows every wallet that voted for the winning path. The community collectively surfaced the clue, and each Observer's wallet is provably part of that moment. This is closer to being a co-author than a player.
+
+**NFT artifact ownership.** If artifacts are minted at choice point close, they live in the holder's wallet — not in a platform account, not behind a login. They can be traded, held, or displayed through any XRPL-compatible tool, independent of Eigenthrope.
+
+### The Framing
+
+The wallet connection shouldn't be pitched as "sign in to play." It should be pitched as "claim your Observer identity." The game is happening on-chain whether or not any individual participates — connecting means making yourself part of the record.
+
+---
+
 ## Participation & Vote Weight
 
 ### The Core Principle
@@ -150,6 +172,43 @@ Separate table — safe to expose to players. Contains only discovered clues wit
 - `state_description` is the author's voice; it evolves as the author writes new universe chapters
 - An object's state history (burned → whole → photographed) is the narrative arc, not player-facing state machine transitions
 - Prerequisite dependencies create natural pacing and reward long-term community knowledge
+
+---
+
+## NFT Artifacts (Possibility — Not Yet Implemented)
+
+When a choice point closes, the story advances along one path and one artifact is revealed. That artifact could be minted as an NFT on XRPL (XLS-20 standard) and distributed to everyone who voted — winners and losers alike.
+
+### Design Rationale
+
+- There is **one image per choice point** — the thing that was discovered, not the thing that wasn't
+- Giving losers a different image would reveal an alternate-path clue that doesn't exist in the canonical narrative
+- Everyone who voted witnessed the same moment; the NFT is proof of presence, not proof of correctness
+- Being right is already rewarded through **Resonance** — alignment with the outcome grows your weight for future choices
+
+### NFT Metadata Differentiators
+
+While the image is the same for all voters, token metadata could encode alignment:
+- `aligned: true | false` — whether the holder voted for the winning choice
+- `resonance_at_vote` — the holder's weight at the time they voted
+- `edition` — mint order (earlier voters get lower edition numbers)
+
+This creates provably distinct tokens sharing the same image, with the metadata as the collector's artifact.
+
+### Trading
+
+XRPL has a native NFT DEX — holders could trade artifacts through Xaman directly. A future marketplace view in the app could surface offer/bid state for the community's collected artifacts.
+
+### Image Generation
+
+Images would be AI-generated, one per choice point, authored by the game master after the outcome is determined. The image represents what the community discovered, rendered as a collectible artifact.
+
+### Open Questions
+
+- Trigger: automated on choice point close, or manual game master action?
+- Who pays the mint fee? (Gas on XRPL NFTs is low but non-zero)
+- Should non-voters ever receive artifacts (e.g., late joiners who missed a choice point)?
+- Burn-and-exchange mechanic: could players trade artifacts to assemble a set?
 
 ---
 
