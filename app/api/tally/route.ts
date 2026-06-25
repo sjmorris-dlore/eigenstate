@@ -22,12 +22,17 @@ export async function GET() {
   const data = await res.json()
   const transactions: unknown[] = data.result?.transactions ?? []
 
-  const counts: Record<string, number> = {}
+  // account_tx returns newest-first. Track the latest vote per wallet.
+  const latestVote: Record<string, string> = {}
+  const seenAccounts = new Set<string>()
 
   for (const entry of transactions) {
     const tx = (entry as Record<string, unknown>).tx_json ??
                 (entry as Record<string, unknown>).tx
     if (!tx || (tx as Record<string, unknown>).TransactionType !== 'Payment') continue
+
+    const sender = ((tx as Record<string, unknown>).Account as string)?.trim()
+    if (!sender || seenAccounts.has(sender)) continue
 
     const memos = (tx as Record<string, unknown>).Memos as Array<{ Memo: { MemoData?: string } }> | undefined
     if (!memos) continue
@@ -41,13 +46,18 @@ export async function GET() {
           vote.chapter === 'C01' &&
           vote.choice_point === 'CP1'
         ) {
-          const choice: string = vote.choice
-          counts[choice] = (counts[choice] ?? 0) + (vote.weight ?? 1)
+          latestVote[sender] = vote.choice
+          seenAccounts.add(sender)
         }
       } catch {
         // skip malformed memos
       }
     }
+  }
+
+  const counts: Record<string, number> = {}
+  for (const choice of Object.values(latestVote)) {
+    counts[choice] = (counts[choice] ?? 0) + 1
   }
 
   return Response.json({ counts })

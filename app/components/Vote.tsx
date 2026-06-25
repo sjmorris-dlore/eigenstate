@@ -53,11 +53,7 @@ export default function Vote({ account }: VoteProps) {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      if (res.status === 409) {
-        setVoted('?')
-      } else {
-        setError(JSON.stringify(err?.error ?? err) ?? `API error ${res.status}`)
-      }
+      setError(JSON.stringify(err?.error ?? err) ?? `API error ${res.status}`)
       setPending(null)
       return
     }
@@ -95,13 +91,17 @@ export default function Vote({ account }: VoteProps) {
     return (
       <div className="flex flex-col items-center gap-2 text-center">
         <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          {voted === '?' ? 'Already observed.' : 'Vote recorded.'}
+          Observation recorded.
         </p>
         <p className="text-sm text-zinc-500">
-          {voted === '?'
-            ? 'This wallet has already voted on this choice point.'
-            : `Choice ${voted} — your observation is on-chain.`}
+          Choice {voted} — on-chain.
         </p>
+        <button
+          onClick={() => setVoted(null)}
+          className="mt-2 text-xs text-zinc-400 underline hover:text-zinc-600 dark:hover:text-zinc-300"
+        >
+          Change vote
+        </button>
       </div>
     )
   }
