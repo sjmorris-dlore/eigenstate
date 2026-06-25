@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
   const payload = {
     txjson: {
       TransactionType: 'Payment',
-      Account: account,
-      Destination: process.env.EIGENTHROPE_VAULT_ADDRESS,
+      Account: account.trim(),
+      Destination: process.env.EIGENTHROPE_VAULT_ADDRESS!.trim(),
       Amount: '1',
       SourceTag: SOURCE_TAG,
       Memos: [
