@@ -1,13 +1,12 @@
 const XRPL_RPC = 'https://xrplcluster.com/'
+export const ARTIFACT_BONUS = 3
+export const ARTIFACT_TAXON = 1
 
 function fromHex(hex: string) {
   return Buffer.from(hex, 'hex').toString('utf8')
 }
 
-export async function getResonance(
-  account: string,
-  vaultAddress: string
-): Promise<number> {
+async function countVotes(account: string, vaultAddress: string): Promise<number> {
   const res = await fetch(XRPL_RPC, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -19,8 +18,6 @@ export async function getResonance(
 
   const data = await res.json()
   const transactions: unknown[] = data.result?.transactions ?? []
-
-  // Count distinct choice points this wallet has voted on
   const participated = new Set<string>()
 
   for (const entry of transactions) {
@@ -47,5 +44,37 @@ export async function getResonance(
     }
   }
 
-  return participated.size + 1
+  return participated.size
+}
+
+async function countArtifacts(account: string, issuer: string): Promise<number> {
+  try {
+    const res = await fetch(XRPL_RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'account_nfts',
+        params: [{ account, limit: 400 }],
+      }),
+    })
+    const data = await res.json()
+    const nfts: unknown[] = data.result?.account_nfts ?? []
+    return nfts.filter((nft) => {
+      const n = nft as Record<string, unknown>
+      return n.Issuer === issuer && n.NFTokenTaxon === ARTIFACT_TAXON
+    }).length
+  } catch {
+    return 0
+  }
+}
+
+export async function getResonance(
+  account: string,
+  vaultAddress: string
+): Promise<number> {
+  const [votes, artifacts] = await Promise.all([
+    countVotes(account, vaultAddress),
+    countArtifacts(account, vaultAddress),
+  ])
+  return votes + 1 + artifacts * ARTIFACT_BONUS
 }
