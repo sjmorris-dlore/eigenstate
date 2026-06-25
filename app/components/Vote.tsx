@@ -37,23 +37,29 @@ export default function Vote({ account }: VoteProps) {
     setError(null)
     setPending(choice)
 
-    const res = await fetch('/api/vote', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        universe: 'U001',
-        chapter: 'C01',
-        choicePoint: 'CP1',
-        choice,
-        account,
-      }),
-    })
+    let res: Response
+    try {
+      res = await fetch('/api/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          universe: 'U001',
+          chapter: 'C01',
+          choicePoint: 'CP1',
+          choice,
+          account,
+        }),
+      })
+    } catch {
+      setError('Network error — please try again.')
+      setPending(null)
+      return
+    }
 
     const data = await res.json()
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      setError(JSON.stringify(err?.error ?? err) ?? `API error ${res.status}`)
+      setError(JSON.stringify(data?.error ?? data) ?? `API error ${res.status}`)
       setPending(null)
       return
     }
