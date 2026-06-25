@@ -4,7 +4,6 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { min: 35, name: 'Eigenthrope' },
   { min: 20, name: 'Chronicler' },
   { min: 10, name: 'Archivist' },
   { min: 5,  name: 'Investigator' },
