@@ -9,7 +9,7 @@ export default function Home() {
             EIGENTHROPE
           </h1>
           <p className="text-lg text-zinc-500 dark:text-zinc-400">
-            A collaborative mystery across collapsing universes
+            A mystery the community uncovers.
           </p>
         </div>
 
