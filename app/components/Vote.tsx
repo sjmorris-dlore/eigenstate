@@ -139,8 +139,8 @@ export default function Vote({ account }: VoteProps) {
 
   if (chapter.status === 'closed') {
     return (
-      <div className="flex w-full flex-col items-center gap-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+      <div className="flex w-full flex-col gap-6">
+        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">
           {chapter.chapter_label}
         </p>
         {chapter.outcome_text ? (
@@ -199,34 +199,36 @@ export default function Vote({ account }: VoteProps) {
   }
 
   return (
-    <div className="flex w-full flex-col items-center gap-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+    <div className="flex w-full flex-col gap-6">
+      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">
         {chapter.chapter_label}
       </p>
       {chapter.story_text && <StoryText text={chapter.story_text} />}
-      {chapter.story_text && (
-        <div className="w-full max-w-prose border-t border-zinc-200 dark:border-zinc-800" />
-      )}
-      <p className="max-w-sm text-center text-zinc-700 dark:text-zinc-300">
-        {chapter.prompt}
-      </p>
-      {chapter.voting_closes_at && (
-        <p className="text-xs text-zinc-500">{timeRemaining(chapter.voting_closes_at)}</p>
-      )}
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      <div className="flex w-full max-w-sm flex-col gap-3">
-        {Object.entries(chapter.choices).map(([id, choice]) => (
-          <button
-            key={id}
-            onClick={() => castVote(id)}
-            disabled={pending !== null}
-            className="flex flex-col gap-1 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:hover:bg-zinc-900"
-          >
-            <span className="text-xs font-semibold text-zinc-400">Choice {id}</span>
-            <span className="font-medium text-zinc-900 dark:text-zinc-50">{choice.label}</span>
-            <span className="text-sm text-zinc-500">{choice.description}</span>
-          </button>
-        ))}
+      <div className="w-full rounded-xl border border-zinc-200 bg-white px-8 py-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">
+          Your Observation
+        </p>
+        <p className="text-base leading-7 text-zinc-800 dark:text-zinc-200">
+          {chapter.prompt}
+        </p>
+        {chapter.voting_closes_at && (
+          <p className="mt-2 text-xs text-zinc-500">{timeRemaining(chapter.voting_closes_at)}</p>
+        )}
+        {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+        <div className="mt-6 flex flex-col gap-3">
+          {Object.entries(chapter.choices).map(([id, choice]) => (
+            <button
+              key={id}
+              onClick={() => castVote(id)}
+              disabled={pending !== null}
+              className="flex flex-col gap-1 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Choice {id}</span>
+              <span className="font-medium text-zinc-900 dark:text-zinc-50">{choice.label}</span>
+              <span className="text-sm text-zinc-500">{choice.description}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -82,7 +82,7 @@ export default function WaveformDisplay() {
   const strokeY = useMemo(() => gaussianStroke(sigmaY, ampY), [sigmaY, ampY])
 
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-3">
+    <div className="flex w-full flex-col items-center gap-3">
       <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
         Quantum State
       </p>

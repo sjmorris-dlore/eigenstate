@@ -27,14 +27,14 @@ export default function ObserverProfile({ account }: { account: string }) {
   ].filter(Boolean).join(' · ')
 
   return (
-    <div className="flex flex-col items-center gap-1 text-center">
-      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+    <div className="flex flex-col gap-1">
+      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
         {profile.tier}
       </p>
       <p className="text-4xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
         {profile.resonance}
       </p>
-      <p className="text-xs uppercase tracking-widest text-zinc-400">Resonance</p>
+      <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-400">Resonance</p>
       {stats && (
         <p className="mt-1 text-xs text-zinc-500">{stats}</p>
       )}
