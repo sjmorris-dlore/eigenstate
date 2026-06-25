@@ -24,6 +24,7 @@ export default function Vote({ account }: VoteProps) {
   const [qr, setQr] = useState<string | null>(null)
   const [signUrl, setSignUrl] = useState<string | null>(null)
   const [voted, setVoted] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function Vote({ account }: VoteProps) {
   }, [])
 
   const castVote = async (choice: string) => {
+    setError(null)
     setPending(choice)
 
     const res = await fetch('/api/vote', {
@@ -50,6 +52,8 @@ export default function Vote({ account }: VoteProps) {
     const data = await res.json()
 
     if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setError(err?.error?.message ?? `API error ${res.status}`)
       setPending(null)
       return
     }
@@ -127,6 +131,9 @@ export default function Vote({ account }: VoteProps) {
       <p className="max-w-sm text-center text-zinc-700 dark:text-zinc-300">
         The Hero stops the robbery. But something feels wrong. What does he do next?
       </p>
+      {error && (
+        <p className="text-sm text-red-500">{error}</p>
+      )}
       <div className="flex w-full max-w-sm flex-col gap-3">
         {CHOICES.map((c) => (
           <button
