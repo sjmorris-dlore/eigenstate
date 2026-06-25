@@ -2,8 +2,11 @@
  * Usage:
  *   node scripts/mint-artifact.mjs \
  *     --choice-point U001:C01:CP1 \
- *     --uri https://example.com/artifact.png \
- *     [--pct 0.25]
+ *     --uri https://example.com/artifact.png
+ *
+ * Yield is computed dynamically from vote distribution (Quantum Yield mechanic):
+ *   50/50 split → 25% of winners receive artifacts (MAX_YIELD)
+ *   100/0 split → 5%  of winners receive artifacts (MIN_YIELD)
  *
  * Requires in .env.local:
  *   EIGENTHROPE_VAULT_SECRET — seed/secret for the vault wallet
@@ -21,8 +24,15 @@ config({ path: '.env.local' })
 const XRPL_WS = 'wss://xrplcluster.com/'
 const ARTIFACT_TAXON = 1
 const SOURCE_TAG = 2606230005
-const ARTIFACT_WINNER_PCT = parseFloat(getArg('--pct') ?? '0.25')
+const MAX_YIELD = 0.25
+const MIN_YIELD = 0.05
 const CHOICE_POINT = getArg('--choice-point')
+
+// p = winning fraction of total weighted votes (0.5–1.0)
+function computeYield(p) {
+  const t = Math.max(0, Math.min(1, (p - 0.5) * 2))
+  return MIN_YIELD + (MAX_YIELD - MIN_YIELD) * (1 - t)
+}
 const IMAGE_URI = getArg('--uri')
 const OFFER_EXPIRY_DAYS = 7
 
@@ -84,17 +94,18 @@ async function getVotersByChoice(client, vaultAddress, choicePoint) {
       try {
         const vote = JSON.parse(fromHex(Memo.MemoData))
         if (vote.universe === universe && vote.chapter === chapter && vote.choice_point === cp) {
-          latestVote[sender] = vote.choice
+          latestVote[sender] = { choice: vote.choice, weight: vote.weight ?? 1 }
         }
       } catch { /* skip */ }
     }
   }
 
-  // Group by choice
+  // Group wallets and sum weights by choice
   const byChoice = {}
-  for (const [wallet, choice] of Object.entries(latestVote)) {
-    if (!byChoice[choice]) byChoice[choice] = []
-    byChoice[choice].push(wallet)
+  for (const [wallet, { choice, weight }] of Object.entries(latestVote)) {
+    if (!byChoice[choice]) byChoice[choice] = { wallets: [], totalWeight: 0 }
+    byChoice[choice].wallets.push(wallet)
+    byChoice[choice].totalWeight += weight
   }
   return byChoice
 }
@@ -123,8 +134,8 @@ console.log(`Vault wallet: ${wallet.address}`)
 
 const byChoice = await getVotersByChoice(client, vaultAddress, CHOICE_POINT)
 console.log('\nVoters by choice:')
-for (const [choice, voters] of Object.entries(byChoice)) {
-  console.log(`  ${choice}: ${voters.length} voter(s)`)
+for (const [choice, { wallets, totalWeight }] of Object.entries(byChoice)) {
+  console.log(`  ${choice}: ${wallets.length} voter(s), weight ${totalWeight.toFixed(2)}`)
 }
 
 if (Object.keys(byChoice).length === 0) {
@@ -133,13 +144,21 @@ if (Object.keys(byChoice).length === 0) {
   process.exit(1)
 }
 
-// Determine winning choice (by voter count — for minting purposes only, weight not needed here)
-const winningChoice = Object.entries(byChoice).sort((a, b) => b[1].length - a[1].length)[0][0]
-const winners = byChoice[winningChoice]
-console.log(`\nWinning choice: ${winningChoice} (${winners.length} voter(s))`)
+// Determine winning choice by total weight
+const winningChoice = Object.entries(byChoice)
+  .sort((a, b) => b[1].totalWeight - a[1].totalWeight)[0][0]
+const { wallets: winners, totalWeight: winnerWeight } = byChoice[winningChoice]
+const totalWeight = Object.values(byChoice).reduce((s, v) => s + v.totalWeight, 0)
 
-const selected = randomSubset(winners, ARTIFACT_WINNER_PCT)
-console.log(`Minting artifacts for ${selected.length} of ${winners.length} winners (${Math.round(ARTIFACT_WINNER_PCT * 100)}%):\n`)
+// Quantum yield: NFT rate scales with vote divergence
+// 50/50 → MAX_YIELD, 100/0 → MIN_YIELD
+const p = winnerWeight / totalWeight
+const yieldPct = computeYield(p)
+console.log(`\nWinning choice: ${winningChoice} (weight ${winnerWeight.toFixed(2)} / ${totalWeight.toFixed(2)} = ${Math.round(p * 100)}% consensus)`)
+console.log(`Quantum yield: ${Math.round(yieldPct * 100)}% of winners receive artifacts`)
+
+const selected = randomSubset(winners, yieldPct)
+console.log(`Minting artifacts for ${selected.length} of ${winners.length} winners:\n`)
 
 const uriHex = toHex(IMAGE_URI)
 const expiresAt = new Date(Date.now() + OFFER_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString()

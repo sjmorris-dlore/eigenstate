@@ -5,6 +5,7 @@ import WalletConnect from './WalletConnect'
 import ObserverProfile from './ObserverProfile'
 import ArtifactClaim from './ArtifactClaim'
 import Vote from './Vote'
+import WaveformDisplay from './WaveformDisplay'
 import Tally from './Tally'
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
       {account && <ObserverProfile account={account} />}
       {account && <ArtifactClaim account={account} />}
       {account && <Vote account={account} />}
+      <WaveformDisplay />
       <Tally />
     </div>
   )

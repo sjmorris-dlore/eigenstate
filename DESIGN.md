@@ -322,6 +322,30 @@ XRPL has a native NFT DEX — holders could trade artifacts through Xaman direct
 
 Images would be AI-generated, one per choice point, authored by the game master after the outcome is determined. The image represents what the community discovered, rendered as a collectible artifact.
 
+### Quantum Yield Mechanic
+
+Artifact distribution rate is not fixed — it scales inversely with vote consensus, analogous to the Heisenberg Uncertainty Principle.
+
+**The principle:** The more precisely the community pins down a state (everyone votes the same way), the less the universe yields in return. When observers genuinely diverge, reality stays uncertain longer and more artifacts crystallize from the tension.
+
+Let `p` = winning choice's share of total weighted votes (0.5–1.0):
+
+```
+yield_pct = MIN_YIELD + (MAX_YIELD − MIN_YIELD) × (1 − 2(p − 0.5))
+```
+
+| Consensus | Yield |
+|---|---|
+| 50/50 split | 25% of winners (maximum) |
+| 60/40 split | 20% |
+| 75/25 split | 12.5% |
+| 90/10 split | 5% |
+| 100/0 split | 5% (floor — always some yield) |
+
+A floor of 5% ensures even a unanimous vote produces artifacts. The mechanic rewards independent thinking over herd behavior without punishing consensus entirely.
+
+**UI:** The Quantum State waveform display shows this live — two complementary Gaussian curves (Observer Consensus in white, Artifact Yield in amber) that trade widths as the vote split shifts. When 50/50, the yield curve is tall and narrow. When consensus is total, it flattens.
+
 ### Open Questions
 
 - Trigger: automated on choice point close, or manual game master action?
