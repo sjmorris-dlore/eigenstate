@@ -9,9 +9,132 @@
 1. A story chapter is published with a branching choice
 2. Players connect their XRPL wallet and submit a vote as a transaction
 3. Weighted votes determine the outcome
-4. The story advances — a clue is revealed or missed, permanently
-5. Eventually the universe collapses and a new one begins
-6. Player participation weights carry forward across universes
+4. The selected outcome updates universe state and community knowledge state
+5. The next chapter is authored from the current state, not from a prewritten branch tree
+6. Eventually the universe collapses and a new one begins
+7. Player participation weights and accumulated knowledge carry forward across universes
+
+---
+
+## Authoring Model: State-Driven, Not Branch-Tree
+
+Eigenstate should not be authored as a traditional branching tree.
+
+Traditional CYOA structure creates exponential writing burden:
+
+```
+Chapter 1
+├── Choice A
+│   ├── Chapter 2A
+│   └── Chapter 2B
+└── Choice B
+    ├── Chapter 2C
+    └── Chapter 2D
+```
+
+Eigenstate should instead work as a **state-driven mystery engine**.
+
+Each vote updates the current state of the universe. The author then writes the next chapter based on that state.
+
+The question is not:
+
+> Which branch are we on?
+
+The question is:
+
+> Given what happened, what is the most interesting next chapter?
+
+This keeps the game sustainable while preserving meaningful consequences.
+
+### Current Reality, Not Branch Path
+
+The backend should track the current state of reality, not an ever-expanding branch tree.
+
+Example:
+
+```
+Universe: U001 — 1963 Bank Robbery
+
+Immutable Facts:
+- Hero chased the fleeing man
+- Antagonist escaped
+- Archive remained unsecured
+- Woman stayed at the scene
+
+Knowledge State:
+- Antagonist predicted Hero: true
+- Archive target identified: false
+- Photograph thread: state 1
+- Woman anomaly thread: state 0
+```
+
+The next chapter is written from this state.
+
+The exact path that produced the state remains available in the archive and on-chain voting history, but the author does not need to maintain a separate branch for every possible route.
+
+### Two Kinds of State
+
+Eigenstate should distinguish between **story facts** and **community knowledge**.
+
+#### Immutable Story Facts
+
+Facts are things that happened in the current universe.
+
+Examples:
+
+- The Hero chased the Antagonist
+- The Woman saw the photograph
+- The vault was opened
+- The police blamed the Hero
+- The Antagonist escaped with the file
+
+Facts are authored consequences of winning choices. They shape the current universe.
+
+#### Community Knowledge State
+
+Knowledge state represents what the community has learned across all universes.
+
+Examples:
+
+- `CLUE_PHOTOGRAPH_001` advanced to state 2
+- `THREAD_WOMAN_ANOMALY` discovered
+- `THREAD_ANTAGONIST_PREDICTION` active
+- `THREAD_OBSERVER` dormant
+
+Knowledge state carries forward across universes and is the real long-term progression system.
+
+### Chapter Authoring Workflow
+
+After each vote resolves, the authoring workflow should be:
+
+1. Record the winning choice on-chain and in application state
+2. Update immutable facts for the current universe
+3. Update any clue or mystery-thread states revealed by the outcome
+4. Review current universe facts and accumulated knowledge
+5. Write the next chapter based on the current state
+6. Present the next meaningful choice
+
+This is closer to running a tabletop RPG campaign than writing a fixed branching novel.
+
+The author understands:
+
+- the characters
+- the current universe
+- the hidden cosmology
+- the mystery threads
+- the consequences of prior votes
+
+The community creates the plot through decisions.
+
+### Design Principle
+
+Eigenstate requires **more planning of the world** and **less planning of the plot**.
+
+The cosmology, mystery threads, major clue states, and endgame should be planned.
+
+Individual chapter paths should remain flexible and reactive.
+
+The story is discovered through play.
 
 ---
 
@@ -217,7 +340,7 @@ A chapter advancing only one scale loses player investment. All three keeps play
 
 ## Repository
 
-**GitHub:** https://github.com/sjmorris-dlore/eigenstate
+**GitHub:** https://github.com/sjmorris-dlore/eigenthrope
 
 ### File Structure (planned)
 ```
@@ -254,6 +377,8 @@ A chapter advancing only one scale loses player investment. All three keeps play
 4. How to handle simultaneous votes during tallying (race conditions)
 5. Whether to expose a public API for community-built tools (wikis, trackers)
 6. Mobile experience — Xaman deep links vs. QR code flow
+7. What fields should the Author Dashboard expose for immutable facts vs. community knowledge state?
+8. How much of the public archive should be generated automatically from DB state vs. authored manually?
 
 ---
 
