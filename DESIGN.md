@@ -194,6 +194,48 @@ Players are not accumulating voting power. They are becoming stronger observers.
 
 ---
 
+## Content Integrity (Not Yet Implemented)
+
+### The Problem
+
+Votes are immutable — permanently recorded on XRPL, unalterable by anyone including the game master. But the story content players are voting on lives in DynamoDB, which only the game master controls. Nothing currently prevents retroactive edits to chapter prompts, choice descriptions, or outcome framing after votes have been cast.
+
+This is a real integrity gap. The game's central claim is that the ledger doesn't lie. That claim is undermined if what the votes refer to can be quietly changed.
+
+### The Solution: IPFS + On-Chain Hash Commitment
+
+When a choice point opens for voting, publish the chapter content to IPFS and record the content hash on-chain in a vault wallet transaction.
+
+IPFS content addressing means the hash IS the file — if the content changes, the hash changes. The on-chain transaction is permanent. Players (or anyone) can verify integrity by:
+
+1. Fetching the chapter from the app
+2. Hashing it
+3. Finding the chapter-open memo in the vault wallet's transaction history
+4. Confirming the hashes match
+
+The on-chain memo would be structured as:
+
+```json
+{
+  "type": "chapter_open",
+  "choice_point": "U001:C01:CP1",
+  "ipfs": "ipfs://QmXxx..."
+}
+```
+
+### Why This Matters for the Mythology
+
+The fix is also thematically load-bearing. "The ledger doesn't lie" becomes a verifiable claim, not just a theme. The game master cannot rewrite history — the same constraint that applies to the characters applies to the author. This is worth communicating to players explicitly when implemented.
+
+### Implementation Notes (for later)
+
+- Requires an IPFS pinning service (Pinata free tier is sufficient; needs `PINATA_JWT` env var)
+- `open-chapter.mjs` would replace the manual seed script: seeds DynamoDB, publishes to IPFS, commits hash on-chain in one step
+- The artifact NFT URIs (already planned) should also point to IPFS rather than regular URLs for the same permanence reasons
+- Verification could eventually be surfaced in the UI — a small "verified" indicator showing the chapter hash matches the on-chain commitment
+
+---
+
 ## Voting Mechanics
 
 ### Vote Submission
