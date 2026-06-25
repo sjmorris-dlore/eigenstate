@@ -79,19 +79,13 @@ It gradually discovers the shape of the mystery itself.
 
 # The Archive
 
-Every universe becomes part of a permanent archive.
+Every universe becomes part of a permanent record.
 
-Players can revisit:
+The story of previous universes — the major decisions, the clues discovered, the paths taken — remains readable to anyone who joins the community later.
 
-* previous universes,
-* major community decisions,
-* discovered clues,
-* evolving mystery threads,
-* and the complete history of community participation.
+A player entering during Universe 3 can go back and read everything that happened in Universe 1 and Universe 2, and understand why the world is the way it is now.
 
-The archive is not simply a record of completed content.
-
-It is part of the game itself.
+The archive is the on-ramp for late arrivals and the long memory of the community.
 
 ---
 
@@ -123,7 +117,7 @@ Identity is established by connecting a Xaman wallet.
 
 Influence is earned through participation rather than wealth, popularity, or social-media following.
 
-Each vote contributes to a player's **Narrative Gravity**, allowing long-term participants to carry greater influence over future decisions.
+Each vote contributes to a player's **Resonance**, allowing long-term participants to carry greater influence over future decisions.
 
 This is intended to be a judgment economy, not a follower economy.
 

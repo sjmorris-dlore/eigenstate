@@ -18,7 +18,7 @@
 
 ## Authoring Model: State-Driven, Not Branch-Tree
 
-Eigenstate should not be authored as a traditional branching tree.
+Eigenthrope should not be authored as a traditional branching tree.
 
 Traditional CYOA structure creates exponential writing burden:
 
@@ -32,7 +32,7 @@ Chapter 1
     └── Chapter 2D
 ```
 
-Eigenstate should instead work as a **state-driven mystery engine**.
+Eigenthrope should instead work as a **state-driven mystery engine**.
 
 Each vote updates the current state of the universe. The author then writes the next chapter based on that state.
 
@@ -74,7 +74,7 @@ The exact path that produced the state remains available in the archive and on-c
 
 ### Two Kinds of State
 
-Eigenstate should distinguish between **story facts** and **community knowledge**.
+Eigenthrope should distinguish between **story facts** and **community knowledge**.
 
 #### Immutable Story Facts
 
@@ -128,7 +128,7 @@ The community creates the plot through decisions.
 
 ### Design Principle
 
-Eigenstate requires **more planning of the world** and **less planning of the plot**.
+Eigenthrope requires **more planning of the world** and **less planning of the plot**.
 
 The cosmology, mystery threads, major clue states, and endgame should be planned.
 
@@ -156,7 +156,7 @@ Connecting a Xaman wallet requires downloading a mobile app and acquiring a smal
 
 **Identity across universes.** Your wallet address is your persistent Observer identity. It doesn't reset when a universe collapses. Your history — every choice you made, every clue you witnessed being discovered — is readable on-chain forever. No platform can revoke it.
 
-**Resonance score.** Your participation weight grows with every vote, compounding across universes. A wallet that has been observing since Universe 1 carries more narrative gravity than a new one. This is a visible, on-chain reputation that belongs entirely to the holder.
+**Resonance score.** Your participation weight grows with every vote, compounding across universes. A wallet that has been observing since Universe 1 carries more Resonance than a new one. This is a visible, on-chain reputation that belongs entirely to the holder.
 
 **Resonance tiers (possibility).** Thresholds could unlock cosmetic or narrative distinctions — a title, a UI treatment, access to lore that new players don't yet see. Not pay-to-win, but acknowledgment of depth of engagement.
 
@@ -179,7 +179,7 @@ Influence is earned through participation, not purchased or inherited. This is a
 - Every player begins with equal base weight
 - Each vote cast increments participation history
 - Weight is a function of total votes cast across all universes
-- Long-term players carry more narrative gravity than newcomers
+- Long-term players carry more Resonance than newcomers
 
 ### Why Not Social Media Follower Count?
 - Follower counts are trivially faked via bot farms
@@ -188,11 +188,7 @@ Influence is earned through participation, not purchased or inherited. This is a
 - Keeps the entire system self-contained on XRPL
 
 ### Thematic Framing
-Player weight should be surfaced in the UI under a mythologically consistent name. Candidates:
-- Resonance
-- Observation Strength
-- Eigenweight
-- Narrative Gravity
+Player weight is surfaced in the UI as **Resonance**.
 
 Players are not accumulating voting power. They are becoming stronger observers.
 
