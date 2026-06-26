@@ -204,6 +204,11 @@ export default function Vote({ account }: VoteProps) {
         </p>
         <ChapterTimer className="mt-2" />
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+        <p className="mt-5 rounded-lg bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+          Signing a vote sends 1 drop of XRP, or 0.000001 XRP, to the Eigenthrope vault and pays
+          the tiny XRPL network fee shown in Xaman. If 1 XRP were worth $1, 1 drop would be
+          $0.000001.
+        </p>
         <div className="mt-6 flex flex-col gap-3">
           {Object.entries(chapter.choices).map(([id, choice]) => (
             <button
