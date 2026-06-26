@@ -267,11 +267,25 @@ export default async function UniverseArchivePage({
                 ? 'One artifact from this universe is in circulation.'
                 : `${winnerHolders.length} artifacts from this universe are in circulation.`}
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {winnerHolders.map((addr) => (
-                <p key={addr} className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
-                  {shortAddress(addr)}
-                </p>
+                <div key={addr} className="flex items-center justify-between gap-4">
+                  <a
+                    href={`https://bithomp.com/explorer/${addr}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-xs text-zinc-400 underline-offset-2 hover:underline dark:text-zinc-500"
+                  >
+                    {shortAddress(addr)}
+                  </a>
+                  <button
+                    disabled
+                    title="On-chain offers coming soon"
+                    className="cursor-not-allowed rounded-full border border-zinc-200 px-3 py-1 text-xs text-zinc-300 dark:border-zinc-800 dark:text-zinc-700"
+                  >
+                    Make an Offer
+                  </button>
+                </div>
               ))}
             </div>
           </div>
