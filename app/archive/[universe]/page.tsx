@@ -23,9 +23,11 @@ interface ChapterRecord {
   choices: Record<string, Choice>
   winning_choice?: string
   story_key?: string
-  outcome_key?: string
+  choice_outcomes?: Record<string, string>
+  epilogue_key?: string
   story_text?: string | null
-  outcome_text?: string | null
+  outcome_text?: string | null  // winning choice's outcome, fetched server-side
+  epilogue_text?: string | null
 }
 
 interface UniverseRecord {
@@ -94,11 +96,15 @@ async function getChapters(universeId: string): Promise<ChapterRecord[]> {
 
   return Promise.all(
     chapters.map(async (ch) => {
-      const [storyText, outcomeText] = await Promise.all([
+      const winningOutcomeKey = ch.winning_choice
+        ? ch.choice_outcomes?.[ch.winning_choice]
+        : undefined
+      const [storyText, outcomeText, epilogueText] = await Promise.all([
         ch.story_key ? fetchStoryText(ch.story_key) : Promise.resolve(null),
-        ch.outcome_key ? fetchStoryText(ch.outcome_key) : Promise.resolve(null),
+        winningOutcomeKey ? fetchStoryText(winningOutcomeKey) : Promise.resolve(null),
+        ch.epilogue_key ? fetchStoryText(ch.epilogue_key) : Promise.resolve(null),
       ])
-      return { ...ch, story_text: storyText, outcome_text: outcomeText }
+      return { ...ch, story_text: storyText, outcome_text: outcomeText, epilogue_text: epilogueText }
     })
   )
 }
@@ -231,6 +237,12 @@ export default async function UniverseArchivePage({
                   {ch.outcome_text && (
                     <ReactMarkdown components={proseComponents}>
                       {ch.outcome_text}
+                    </ReactMarkdown>
+                  )}
+
+                  {ch.epilogue_text && (
+                    <ReactMarkdown components={proseComponents}>
+                      {ch.epilogue_text}
                     </ReactMarkdown>
                   )}
 

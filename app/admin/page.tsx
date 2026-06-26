@@ -16,7 +16,8 @@ interface ChapterData {
   choices: Record<string, Choice>
   voting_closes_at: string
   story_key?: string
-  outcome_key?: string
+  choice_outcomes?: Record<string, string>
+  epilogue_key?: string
   winning_choice?: string
   final_tally?: Record<string, number>
 }
@@ -77,16 +78,19 @@ export default function AdminPage() {
   const [loadError, setLoadError] = useState('')
 
   const [storyContent, setStoryContent] = useState('')
-  const [outcomeContent, setOutcomeContent] = useState('')
+  const [choiceContents, setChoiceContents] = useState<Record<string, string>>({})
+  const [epilogueContent, setEpilogueContent] = useState('')
   const [storyStatus, setStoryStatus] = useState('')
-  const [outcomeStatus, setOutcomeStatus] = useState('')
+  const [choiceStatuses, setChoiceStatuses] = useState<Record<string, string>>({})
+  const [epilogueStatus, setEpilogueStatus] = useState('')
 
   const [announceStatus, setAnnounceStatus] = useState('')
   const [resetHours, setResetHours] = useState(24)
   const [resetStatus, setResetStatus] = useState('')
 
   const [uploadingStory, setUploadingStory] = useState(false)
-  const [uploadingOutcome, setUploadingOutcome] = useState(false)
+  const [uploadingChoices, setUploadingChoices] = useState<Record<string, boolean>>({})
+  const [uploadingEpilogue, setUploadingEpilogue] = useState(false)
   const [announcing, setAnnouncing] = useState(false)
   const [resetting, setResetting] = useState(false)
 
@@ -111,11 +115,25 @@ export default function AdminPage() {
     router.push('/admin/login')
   }
 
-  async function uploadContent(type: 'story' | 'outcome') {
+  async function uploadContent(
+    type: 'story' | 'choice_outcome' | 'epilogue',
+    choice_id?: string
+  ) {
     if (!chapter) return
-    const content = type === 'story' ? storyContent : outcomeContent
-    const setStatus = type === 'story' ? setStoryStatus : setOutcomeStatus
-    const setUploading = type === 'story' ? setUploadingStory : setUploadingOutcome
+    const content =
+      type === 'story' ? storyContent
+      : type === 'epilogue' ? epilogueContent
+      : choiceContents[choice_id!] ?? ''
+
+    const setStatus =
+      type === 'story' ? setStoryStatus
+      : type === 'epilogue' ? setEpilogueStatus
+      : (msg: string) => setChoiceStatuses(s => ({ ...s, [choice_id!]: msg }))
+
+    const setUploading =
+      type === 'story' ? setUploadingStory
+      : type === 'epilogue' ? setUploadingEpilogue
+      : (v: boolean) => setUploadingChoices(s => ({ ...s, [choice_id!]: v }))
 
     if (!content.trim()) {
       setStatus('Error: Content is empty.')
@@ -128,7 +146,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/upload-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ choice_point: chapter.choice_point, type, content }),
+        body: JSON.stringify({ choice_point: chapter.choice_point, type, content, choice_id }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -256,7 +274,7 @@ export default function AdminPage() {
               </div>
               <div className="flex flex-wrap gap-4 text-xs text-zinc-400 dark:text-zinc-600">
                 <span>Story: {chapter.story_key ?? 'not uploaded'}</span>
-                <span>Outcome: {chapter.outcome_key ?? 'not uploaded'}</span>
+                <span>Epilogue: {chapter.epilogue_key ?? 'not uploaded'}</span>
               </div>
               {chapter.voting_closes_at && (
                 <p className="text-xs text-zinc-400 dark:text-zinc-600">
@@ -270,14 +288,16 @@ export default function AdminPage() {
         {/* Content upload */}
         <Section title="Content">
           <div className="space-y-6">
+
+            {/* Pre-choice story */}
             <div>
-              <label className="mb-1.5 block text-xs text-zinc-500 dark:text-zinc-500">
-                Story{chapter?.story_key ? ` — ${chapter.story_key}` : ' — not uploaded'}
+              <label className="mb-1.5 block text-xs text-zinc-500">
+                Pre-choice story{chapter?.story_key ? ` — ${chapter.story_key}` : ' — not uploaded'}
               </label>
               <textarea
                 value={storyContent}
                 onChange={e => setStoryContent(e.target.value)}
-                placeholder="Paste story markdown here…"
+                placeholder="Shown to readers while voting is open…"
                 rows={6}
                 className={monoInputClass}
               />
@@ -291,26 +311,56 @@ export default function AdminPage() {
               <ActionStatus message={storyStatus} />
             </div>
 
+            {/* Per-choice outcomes */}
+            {chapter && Object.entries(chapter.choices ?? {}).map(([id, c]) => {
+              const existingKey = chapter.choice_outcomes?.[id]
+              return (
+                <div key={id}>
+                  <label className="mb-1.5 block text-xs text-zinc-500">
+                    Outcome if <span className="font-semibold text-zinc-700 dark:text-zinc-300">{id} — {c.label}</span>
+                    {existingKey ? ` — ${existingKey}` : ' — not uploaded'}
+                  </label>
+                  <textarea
+                    value={choiceContents[id] ?? ''}
+                    onChange={e => setChoiceContents(s => ({ ...s, [id]: e.target.value }))}
+                    placeholder={`What happens if the community chose "${c.label}"…`}
+                    rows={6}
+                    className={monoInputClass}
+                  />
+                  <button
+                    onClick={() => uploadContent('choice_outcome', id)}
+                    disabled={uploadingChoices[id] || !chapter}
+                    className={`mt-2 ${btnClass}`}
+                  >
+                    {uploadingChoices[id] ? 'Uploading…' : `Upload Outcome ${id}`}
+                  </button>
+                  <ActionStatus message={choiceStatuses[id]} />
+                </div>
+              )
+            })}
+
+            {/* Shared epilogue */}
             <div>
-              <label className="mb-1.5 block text-xs text-zinc-500 dark:text-zinc-500">
-                Outcome{chapter?.outcome_key ? ` — ${chapter.outcome_key}` : ' — not uploaded'}
+              <label className="mb-1.5 block text-xs text-zinc-500">
+                Epilogue (shared, shown after outcome){chapter?.epilogue_key ? ` — ${chapter.epilogue_key}` : ' — not uploaded'}
               </label>
               <textarea
-                value={outcomeContent}
-                onChange={e => setOutcomeContent(e.target.value)}
-                placeholder="Paste outcome markdown here…"
+                value={epilogueContent}
+                onChange={e => setEpilogueContent(e.target.value)}
+                placeholder="Closing beats that play out regardless of the choice made…"
                 rows={6}
                 className={monoInputClass}
               />
               <button
-                onClick={() => uploadContent('outcome')}
-                disabled={uploadingOutcome || !chapter}
+                onClick={() => uploadContent('epilogue')}
+                disabled={uploadingEpilogue || !chapter}
                 className={`mt-2 ${btnClass}`}
               >
-                {uploadingOutcome ? 'Uploading…' : 'Upload Outcome'}
+                {uploadingEpilogue ? 'Uploading…' : 'Upload Epilogue'}
               </button>
-              <ActionStatus message={outcomeStatus} />
+              <ActionStatus message={epilogueStatus} />
             </div>
+
           </div>
         </Section>
 

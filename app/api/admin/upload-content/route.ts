@@ -1,36 +1,63 @@
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb'
+import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import { dynamo } from '@/lib/dynamo'
 import { putStoryText } from '@/lib/s3'
 
 export async function POST(request: Request) {
-  const { choice_point, type, content } = await request.json() as {
+  const { choice_point, type, content, choice_id } = await request.json() as {
     choice_point: string
-    type: 'story' | 'outcome'
+    type: 'story' | 'choice_outcome' | 'epilogue'
     content: string
+    choice_id?: string
   }
 
   if (!choice_point || !type || !content) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  if (type !== 'story' && type !== 'outcome') {
-    return Response.json({ error: 'type must be story or outcome' }, { status: 400 })
-  }
-
-  // U001:C01:CP1 → U001/C01/story.md
   const [universe, chapter] = choice_point.split(':')
-  const s3Key = `${universe}/${chapter}/${type}.md`
+
+  let s3Key: string
+  if (type === 'story') {
+    s3Key = `${universe}/${chapter}/story.md`
+  } else if (type === 'epilogue') {
+    s3Key = `${universe}/${chapter}/epilogue.md`
+  } else if (type === 'choice_outcome') {
+    if (!choice_id) return Response.json({ error: 'choice_id required for choice_outcome' }, { status: 400 })
+    s3Key = `${universe}/${chapter}/outcome_${choice_id}.md`
+  } else {
+    return Response.json({ error: 'Invalid type' }, { status: 400 })
+  }
 
   await putStoryText(s3Key, content)
 
-  const dbField = type === 'story' ? 'story_key' : 'outcome_key'
-
-  await dynamo.send(new UpdateCommand({
-    TableName: 'eigenthrope_chapters',
-    Key: { choice_point },
-    UpdateExpression: `SET ${dbField} = :key`,
-    ExpressionAttributeValues: { ':key': s3Key },
-  }))
+  if (type === 'story') {
+    await dynamo.send(new UpdateCommand({
+      TableName: 'eigenthrope_chapters',
+      Key: { choice_point },
+      UpdateExpression: 'SET story_key = :key',
+      ExpressionAttributeValues: { ':key': s3Key },
+    }))
+  } else if (type === 'epilogue') {
+    await dynamo.send(new UpdateCommand({
+      TableName: 'eigenthrope_chapters',
+      Key: { choice_point },
+      UpdateExpression: 'SET epilogue_key = :key',
+      ExpressionAttributeValues: { ':key': s3Key },
+    }))
+  } else {
+    // Merge into choice_outcomes map with a read-modify-write
+    const current = await dynamo.send(new GetCommand({
+      TableName: 'eigenthrope_chapters',
+      Key: { choice_point },
+    }))
+    const existing = (current.Item?.choice_outcomes as Record<string, string>) ?? {}
+    await dynamo.send(new UpdateCommand({
+      TableName: 'eigenthrope_chapters',
+      Key: { choice_point },
+      UpdateExpression: 'SET choice_outcomes = :co',
+      ExpressionAttributeValues: { ':co': { ...existing, [choice_id!]: s3Key } },
+    }))
+  }
 
   return Response.json({ ok: true, s3_key: s3Key })
 }

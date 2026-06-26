@@ -19,12 +19,13 @@ export interface ChapterData {
   voting_closes_at: string
   next_chapter_due_at: string
   story_key?: string
-  outcome_key?: string
+  choice_outcomes?: Record<string, string>  // { A: 'U001/C01/outcome_A.md', ... }
+  epilogue_key?: string
   winning_choice?: string
   final_tally?: Record<string, number>
   // Populated server-side from S3, not stored in DB
   story_text?: string
-  outcome_text?: string
+  outcome_text?: string  // winning choice's outcome, only set when closed
 }
 
 export async function GET() {
@@ -50,9 +51,13 @@ export async function GET() {
 
   const chapter = chapterItem.Item as ChapterData
 
+  const winningOutcomeKey = chapter.winning_choice
+    ? chapter.choice_outcomes?.[chapter.winning_choice]
+    : undefined
+
   const [storyText, outcomeText] = await Promise.all([
     chapter.story_key ? fetchStoryText(chapter.story_key) : Promise.resolve(null),
-    chapter.outcome_key ? fetchStoryText(chapter.outcome_key) : Promise.resolve(null),
+    winningOutcomeKey ? fetchStoryText(winningOutcomeKey) : Promise.resolve(null),
   ])
 
   return Response.json({
