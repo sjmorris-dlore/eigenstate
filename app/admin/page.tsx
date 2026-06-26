@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import type { LibraryChapter } from '@/app/api/admin/nft-library/route'
 
 interface Choice {
   label: string
@@ -189,6 +190,166 @@ function NewChapterForm({
         <button type="button" onClick={onCancel} className="text-[11px] text-zinc-400 hover:text-zinc-600">Cancel</button>
       </div>
     </form>
+  )
+}
+
+// ─── Library ─────────────────────────────────────────────────────────────────
+
+function ipfsToGateway(uri: string) {
+  return uri.replace('ipfs://', 'https://ipfs.io/ipfs/')
+}
+
+function ImageSlot({
+  choicePoint,
+  type,
+  uri,
+  onRefresh,
+}: {
+  choicePoint: string
+  type: 'winner' | 'participation'
+  uri?: string
+  onRefresh: () => void
+}) {
+  const key = `${choicePoint}:${type}`
+  const [uploading, setUploading] = useState(false)
+  const [manualUri, setManualUri] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  async function upload(file: File) {
+    setUploading(true)
+    setStatus('')
+    const form = new FormData()
+    form.append('file', file)
+    form.append('choice_point', choicePoint)
+    form.append('type', type)
+    try {
+      const res = await fetch('/api/admin/upload-nft-image', { method: 'POST', body: form })
+      const data = await res.json()
+      if (res.ok) { setStatus(`Pinned: ${data.cid}`); onRefresh() }
+      else setStatus(`Error: ${data.error}`)
+    } catch { setStatus('Error: Upload failed.') }
+    setUploading(false)
+  }
+
+  async function saveUri() {
+    if (!manualUri.trim()) return
+    setSaving(true)
+    setStatus('')
+    const field = type === 'winner' ? 'winner_nft_uri' : 'participation_nft_uri'
+    try {
+      const res = await fetch('/api/admin/chapter-data', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice_point: choicePoint, [field]: manualUri.trim() }),
+      })
+      if (res.ok) { setStatus('Saved.'); setManualUri(''); onRefresh() }
+      else { const d = await res.json(); setStatus(`Error: ${d.error}`) }
+    } catch { setStatus('Error: Save failed.') }
+    setSaving(false)
+  }
+
+  const label = type === 'winner' ? 'Winner NFT' : 'Participation NFT'
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{label}</p>
+
+      {uri ? (
+        <div className="space-y-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={ipfsToGateway(uri)}
+            alt={label}
+            className="h-32 w-full rounded object-contain bg-zinc-100 dark:bg-zinc-800"
+          />
+          <p className="break-all font-mono text-[10px] text-zinc-400">{uri}</p>
+        </div>
+      ) : (
+        <div className="flex h-32 items-center justify-center rounded border-2 border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+          <p className="text-xs text-zinc-400">No image</p>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <label className={`${smallBtnClass} cursor-pointer`}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={e => { const f = e.target.files?.[0]; if (f) upload(f) }}
+            key={key}
+          />
+          {uploading ? 'Uploading…' : 'Upload'}
+        </label>
+      </div>
+
+      <div className="flex gap-1">
+        <input
+          value={manualUri}
+          onChange={e => setManualUri(e.target.value)}
+          placeholder="ipfs://…"
+          className={`${smallInputClass} flex-1 font-mono`}
+        />
+        <button onClick={saveUri} disabled={saving || !manualUri.trim()} className={smallBtnClass}>
+          {saving ? '…' : 'Set'}
+        </button>
+      </div>
+
+      {status && (
+        <p className={`text-[11px] ${status.startsWith('Error') ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+          {status}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function LibrarySection() {
+  const [chapters, setChapters] = useState<LibraryChapter[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    const res = await fetch('/api/admin/nft-library')
+    if (res.ok) { setChapters(await res.json()); setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  // Group by universe
+  const byUniverse = chapters.reduce<Record<string, LibraryChapter[]>>((acc, ch) => {
+    if (!acc[ch.universe]) acc[ch.universe] = []
+    acc[ch.universe].push(ch)
+    return acc
+  }, {})
+
+  if (loading) return <p className="text-sm text-zinc-400">Loading…</p>
+  if (chapters.length === 0) return <p className="text-sm text-zinc-400">No chapters yet.</p>
+
+  return (
+    <div className="space-y-8">
+      {Object.entries(byUniverse).sort(([a], [b]) => a.localeCompare(b)).map(([universeId, chs]) => (
+        <div key={universeId}>
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400">{universeId}</p>
+          <div className="space-y-4">
+            {chs.map(ch => (
+              <div key={ch.choice_point} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                <div className="mb-3">
+                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{ch.chapter_label || ch.choice_point}</p>
+                  <p className="font-mono text-[10px] text-zinc-400">{ch.choice_point}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <ImageSlot choicePoint={ch.choice_point} type="winner" uri={ch.winner_nft_uri} onRefresh={load} />
+                  <ImageSlot choicePoint={ch.choice_point} type="participation" uri={ch.participation_nft_uri} onRefresh={load} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -453,6 +614,7 @@ export default function AdminPage() {
 
   const [editingChoicePoint, setEditingChoicePoint] = useState<string | null>(null)
   const [editingChapterData, setEditingChapterData] = useState<ChapterData | null>(null)
+  const [contentTab, setContentTab] = useState<'content' | 'library'>('content')
 
   const loadData = useCallback(async () => {
     try {
@@ -715,12 +877,37 @@ export default function AdminPage() {
               )}
             </Section>
 
-            {/* Content upload */}
-            <Section title={
-              editingChoicePoint && editingChoicePoint !== chapter?.choice_point
-                ? `Content — ${editingChoicePoint}`
-                : 'Content'
-            }>
+            {/* Content / Library tabs */}
+            <div className="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              {/* Tab bar */}
+              <div className="flex items-center gap-1 border-b border-zinc-200 px-6 pt-4 dark:border-zinc-800">
+                <button
+                  onClick={() => setContentTab('content')}
+                  className={`rounded-t px-3 py-1.5 text-xs font-medium transition-colors ${
+                    contentTab === 'content'
+                      ? 'border-b-2 border-zinc-800 text-zinc-900 dark:border-zinc-200 dark:text-zinc-100'
+                      : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                  }`}
+                >
+                  {editingChoicePoint && editingChoicePoint !== chapter?.choice_point
+                    ? `Content — ${editingChoicePoint}`
+                    : 'Content'}
+                </button>
+                <button
+                  onClick={() => setContentTab('library')}
+                  className={`rounded-t px-3 py-1.5 text-xs font-medium transition-colors ${
+                    contentTab === 'library'
+                      ? 'border-b-2 border-zinc-800 text-zinc-900 dark:border-zinc-200 dark:text-zinc-100'
+                      : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                  }`}
+                >
+                  Library
+                </button>
+              </div>
+              <div className="p-6">
+              {contentTab === 'library' ? (
+                <LibrarySection />
+              ) : (
               <div className="space-y-6">
                 <div>
                   <label className="mb-1.5 block text-xs text-zinc-500">
@@ -832,7 +1019,9 @@ export default function AdminPage() {
                   <ActionStatus message={epilogueStatus} />
                 </div>
               </div>
-            </Section>
+              )}
+            </div>
+          </div>
 
             {/* Actions */}
             <Section title="Actions">
