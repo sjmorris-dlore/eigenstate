@@ -1,5 +1,6 @@
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 import { dynamo } from '@/lib/dynamo'
+import { getResetVersion } from '@/lib/config'
 import type { ChapterData } from '@/app/api/chapter/route'
 
 const XRPL_RPC = 'https://xrplcluster.com/'
@@ -14,14 +15,15 @@ async function computeTallyFromChain(
   vaultAddress: string,
   universe: string,
   chapter: string,
-  cp: string
+  cp: string,
+  resetVersion: number
 ): Promise<Record<string, number>> {
   const res = await fetch(XRPL_RPC, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       method: 'account_tx',
-      params: [{ account: vaultAddress, limit: 200 }],
+      params: [{ account: vaultAddress, limit: 200, forward: false }],
     }),
   })
 
@@ -49,7 +51,8 @@ async function computeTallyFromChain(
         if (
           vote.universe === universe &&
           vote.chapter === chapter &&
-          vote.choice_point === cp
+          vote.choice_point === cp &&
+          (vote.rv ?? 0) === resetVersion
         ) {
           latestVote[sender] = { choice: vote.choice, weight: vote.weight ?? 1 }
           seenAccounts.add(sender)
@@ -73,10 +76,10 @@ export async function GET() {
     return Response.json({ error: 'EIGENTHROPE_VAULT_ADDRESS not set' }, { status: 500 })
   }
 
-  const configItem = await dynamo.send(new GetCommand({
-    TableName: 'eigenthrope_config',
-    Key: { key: 'active_choice_point' },
-  }))
+  const [configItem, resetVersion] = await Promise.all([
+    dynamo.send(new GetCommand({ TableName: 'eigenthrope_config', Key: { key: 'active_choice_point' } })),
+    getResetVersion(),
+  ])
 
   if (!configItem.Item) {
     return Response.json({ error: 'No active choice point' }, { status: 404 })
@@ -103,27 +106,28 @@ export async function GET() {
     })
   }
 
-  // Check cache
+  // Check cache — only use if it matches the current reset version
   const cached = await dynamo.send(new GetCommand({
     TableName: TABLE,
     Key: { choice_point: choicePoint },
   }))
 
-  if (cached.Item) {
+  if (cached.Item && (cached.Item.reset_version ?? 0) === resetVersion) {
     const age = Date.now() - new Date(cached.Item.last_updated).getTime()
     if (age < CACHE_TTL_MS) {
       return Response.json({ counts: cached.Item.counts, choices: chapterData?.choices ?? {}, cached: true })
     }
   }
 
-  // Cache miss or stale — recompute from chain
-  const counts = await computeTallyFromChain(vaultAddress, universe, chapter, cp)
+  // Cache miss, stale, or wrong reset version — recompute from chain
+  const counts = await computeTallyFromChain(vaultAddress, universe, chapter, cp, resetVersion)
 
   await dynamo.send(new PutCommand({
     TableName: TABLE,
     Item: {
       choice_point: choicePoint,
       counts,
+      reset_version: resetVersion,
       last_updated: new Date().toISOString(),
     },
   }))

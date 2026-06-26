@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getResonance } from '@/lib/resonance'
+import { getResetVersion } from '@/lib/config'
 
 const XAMAN_API = 'https://xumm.app/api/v1/platform/payload'
 const SOURCE_TAG = 2606230005
@@ -16,7 +17,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'EIGENTHROPE_VAULT_ADDRESS not set' }, { status: 500 })
   }
 
-  const weight = await getResonance(account.trim(), vaultAddress)
+  const [weight, rv] = await Promise.all([
+    getResonance(account.trim(), vaultAddress),
+    getResetVersion(),
+  ])
 
   const memoData = JSON.stringify({
     universe,
@@ -24,6 +28,7 @@ export async function POST(request: NextRequest) {
     choice_point: choicePoint,
     choice,
     weight,
+    rv,
   })
 
   const payload = {

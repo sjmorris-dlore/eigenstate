@@ -1,5 +1,6 @@
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import { dynamo } from '@/lib/dynamo'
+import { getResetVersion } from '@/lib/config'
 import type { ChapterData } from '@/app/api/chapter/route'
 
 const XRPL_RPC = 'https://xrplcluster.com/'
@@ -19,14 +20,15 @@ async function computeFinalTally(
   vaultAddress: string,
   universe: string,
   chapter: string,
-  cp: string
+  cp: string,
+  resetVersion: number
 ): Promise<Record<string, number>> {
   const res = await fetch(XRPL_RPC, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       method: 'account_tx',
-      params: [{ account: vaultAddress, limit: 200 }],
+      params: [{ account: vaultAddress, limit: 200, forward: false }],
     }),
   })
   const data = await res.json()
@@ -46,7 +48,12 @@ async function computeFinalTally(
       if (!Memo.MemoData) continue
       try {
         const vote = JSON.parse(fromHex(Memo.MemoData))
-        if (vote.universe === universe && vote.chapter === chapter && vote.choice_point === cp) {
+        if (
+          vote.universe === universe &&
+          vote.chapter === chapter &&
+          vote.choice_point === cp &&
+          (vote.rv ?? 0) === resetVersion
+        ) {
           latestVote[sender] = { choice: vote.choice, weight: vote.weight ?? 1 }
           seen.add(sender)
         }
@@ -97,7 +104,8 @@ export async function GET(request: Request) {
 
   // Deadline passed — compute final tally and close
   const [universe, chap, cp] = choicePoint.split(':')
-  const finalTally = await computeFinalTally(vaultAddress, universe, chap, cp)
+  const resetVersion = await getResetVersion()
+  const finalTally = await computeFinalTally(vaultAddress, universe, chap, cp, resetVersion)
 
   const total = Object.values(finalTally).reduce((a, b) => a + b, 0)
   const winningChoice = total > 0

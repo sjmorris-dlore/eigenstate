@@ -4,8 +4,8 @@
  *     --choice-point U001:C01:CP1 \
  *     --uri https://example.com/participation.png
  *
- * Mints a participation NFT (taxon 2) for every voter on the choice point,
- * regardless of which choice they voted for. Worth +1 resonance each.
+ * Mints participation NFTs (taxon = 2000 + reset_version) for every voter.
+ * Worth +1 resonance each.
  *
  * Requires in .env.local:
  *   EIGENTHROPE_VAULT_SECRET
@@ -15,13 +15,13 @@
 
 import { Client, Wallet } from 'xrpl'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 import { config } from 'dotenv'
 
 config({ path: '.env.local' })
 
 const XRPL_WS = 'wss://xrplcluster.com/'
-const PARTICIPATION_TAXON = 2
+const PARTICIPATION_TAXON_BASE = 2000
 const SOURCE_TAG = 2606230005
 const OFFER_EXPIRY_DAYS = 7
 
@@ -31,14 +31,14 @@ function getArg(flag) {
 }
 
 const CHOICE_POINT = getArg('--choice-point')
-const IMAGE_URI = getArg('--uri')
+const IMAGE_URI    = getArg('--uri')
 
 if (!CHOICE_POINT || !IMAGE_URI) {
   console.error('Usage: node scripts/mint-participation.mjs --choice-point U001:C01:CP1 --uri https://...')
   process.exit(1)
 }
 
-const vaultSecret = process.env.EIGENTHROPE_VAULT_SECRET
+const vaultSecret  = process.env.EIGENTHROPE_VAULT_SECRET
 const vaultAddress = process.env.EIGENTHROPE_VAULT_ADDRESS?.trim()
 if (!vaultSecret || !vaultAddress) {
   console.error('EIGENTHROPE_VAULT_SECRET and EIGENTHROPE_VAULT_ADDRESS must be set in .env.local')
@@ -53,22 +53,23 @@ const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({
   },
 }))
 
-function fromHex(hex) {
-  return Buffer.from(hex, 'hex').toString('utf8')
+async function getResetVersion() {
+  try {
+    const result = await dynamo.send(new GetCommand({
+      TableName: 'eigenthrope_config',
+      Key: { key: 'reset_version' },
+    }))
+    const v = result.Item?.value
+    return typeof v === 'number' ? v : 0
+  } catch { return 0 }
 }
 
-function toHex(str) {
-  return Buffer.from(str, 'utf8').toString('hex').toUpperCase()
-}
+function fromHex(hex) { return Buffer.from(hex, 'hex').toString('utf8') }
+function toHex(str)   { return Buffer.from(str, 'utf8').toString('hex').toUpperCase() }
 
-async function getAllVoters(client, vaultAddress, choicePoint) {
+async function getAllVoters(client, vaultAddress, choicePoint, resetVersion) {
   const [universe, chapter, cp] = choicePoint.split(':')
-  const res = await client.request({
-    command: 'account_tx',
-    account: vaultAddress,
-    limit: 400,
-  })
-
+  const res = await client.request({ command: 'account_tx', account: vaultAddress, limit: 400, forward: false })
   const transactions = res.result?.transactions ?? []
   const latestVote = {}
 
@@ -77,22 +78,25 @@ async function getAllVoters(client, vaultAddress, choicePoint) {
     if (!tx || tx.TransactionType !== 'Payment') continue
     const sender = tx.Account?.trim()
     if (!sender || latestVote[sender]) continue
-
     const memos = tx.Memos
     if (!memos) continue
-
     for (const { Memo } of memos) {
       if (!Memo.MemoData) continue
       try {
         const vote = JSON.parse(fromHex(Memo.MemoData))
-        if (vote.universe === universe && vote.chapter === chapter && vote.choice_point === cp) {
+        if (
+          vote.universe === universe &&
+          vote.chapter === chapter &&
+          vote.choice_point === cp &&
+          (vote.rv ?? 0) === resetVersion
+        ) {
           latestVote[sender] = vote.choice
         }
       } catch { /* skip */ }
     }
   }
 
-  return latestVote // { wallet: choiceId }
+  return latestVote
 }
 
 async function getOfferIdFromResult(result) {
@@ -105,23 +109,27 @@ async function getOfferIdFromResult(result) {
   throw new Error('Could not find offer ID in transaction result')
 }
 
+const resetVersion = await getResetVersion()
+const PARTICIPATION_TAXON = PARTICIPATION_TAXON_BASE + resetVersion
+console.log(`Reset version: ${resetVersion}  →  Participation taxon: ${PARTICIPATION_TAXON}`)
+
 const client = new Client(XRPL_WS)
 await client.connect()
 
 const wallet = Wallet.fromSeed(vaultSecret)
 console.log(`Vault wallet: ${wallet.address}`)
 
-const voterMap = await getAllVoters(client, vaultAddress, CHOICE_POINT)
+const voterMap = await getAllVoters(client, vaultAddress, CHOICE_POINT, resetVersion)
 const voters = Object.keys(voterMap)
-console.log(`\nFound ${voters.length} voter(s) for ${CHOICE_POINT}`)
+console.log(`\nFound ${voters.length} voter(s) for ${CHOICE_POINT} (reset ${resetVersion})`)
 
 if (voters.length === 0) {
-  console.error('No votes found for this choice point.')
+  console.error('No votes found for this choice point and reset version.')
   await client.disconnect()
   process.exit(1)
 }
 
-const uriHex = toHex(IMAGE_URI)
+const uriHex    = toHex(IMAGE_URI)
 const expiresAt = new Date(Date.now() + OFFER_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
 for (const voter of voters) {
@@ -131,16 +139,13 @@ for (const voter of voters) {
     TransactionType: 'NFTokenMint',
     Account: wallet.address,
     URI: uriHex,
-    Flags: 8, // tfTransferable
+    Flags: 8,
     NFTokenTaxon: PARTICIPATION_TAXON,
     SourceTag: SOURCE_TAG,
   }, { wallet })
 
   const nftTokenId = mintResult.result.meta?.nftoken_id
-  if (!nftTokenId) {
-    console.error(`  Failed to get NFTokenID for ${voter}, skipping`)
-    continue
-  }
+  if (!nftTokenId) { console.error(`  Failed to get NFTokenID for ${voter}, skipping`); continue }
   console.log(`  Minted: ${nftTokenId}`)
 
   const offerResult = await client.submitAndWait({
@@ -149,7 +154,7 @@ for (const voter of voters) {
     NFTokenID: nftTokenId,
     Amount: '0',
     Destination: voter,
-    Flags: 1, // tfSellNFToken
+    Flags: 1,
     SourceTag: SOURCE_TAG,
   }, { wallet })
 
@@ -162,6 +167,8 @@ for (const voter of voters) {
       offer_id: offerId,
       nft_token_id: nftTokenId,
       artifact_type: 'participation',
+      reset_version: resetVersion,
+      nft_taxon: PARTICIPATION_TAXON,
       choice_point: CHOICE_POINT,
       winner_address: voter,
       voted_choice: voterMap[voter],
