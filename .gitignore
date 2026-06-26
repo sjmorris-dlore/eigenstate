@@ -42,4 +42,3 @@ next-env.d.ts
 
 # story content (lives in S3, not tracked here)
 /story-files/
-STORY.md
