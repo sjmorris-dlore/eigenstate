@@ -202,7 +202,7 @@ function normalizeIpfsUri(input: string): string {
 }
 
 function ipfsToGateway(uri: string) {
-  if (uri.startsWith('ipfs://')) return uri.replace('ipfs://', 'https://ipfs.io/ipfs/')
+  if (uri.startsWith('ipfs://')) return uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
   return uri
 }
 
