@@ -3,17 +3,24 @@ import { dynamo } from '@/lib/dynamo'
 import { fetchStoryText } from '@/lib/s3'
 import type { ChapterData } from '@/app/api/chapter/route'
 
-export async function GET() {
-  const configItem = await dynamo.send(new GetCommand({
-    TableName: 'eigenthrope_config',
-    Key: { key: 'active_choice_point' },
-  }))
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  const overrideChoicePoint = url.searchParams.get('choice_point')
 
-  if (!configItem.Item) {
-    return Response.json({ error: 'No active choice point' }, { status: 404 })
+  let choicePoint: string
+
+  if (overrideChoicePoint) {
+    choicePoint = overrideChoicePoint
+  } else {
+    const configItem = await dynamo.send(new GetCommand({
+      TableName: 'eigenthrope_config',
+      Key: { key: 'active_choice_point' },
+    }))
+    if (!configItem.Item) {
+      return Response.json({ error: 'No active choice point' }, { status: 404 })
+    }
+    choicePoint = configItem.Item.value as string
   }
-
-  const choicePoint = configItem.Item.value as string
 
   const chapterItem = await dynamo.send(new GetCommand({
     TableName: 'eigenthrope_chapters',

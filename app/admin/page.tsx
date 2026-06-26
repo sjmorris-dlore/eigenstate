@@ -196,10 +196,14 @@ function NewChapterForm({
 
 function UniverseNav({
   activeChoicePoint,
+  editingChoicePoint,
   onActivate,
+  onEdit,
 }: {
   activeChoicePoint: string | undefined
+  editingChoicePoint: string | null
   onActivate: () => void
+  onEdit: (choicePoint: string) => void
 }) {
   const [universes, setUniverses] = useState<UniverseItem[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -316,26 +320,41 @@ function UniverseNav({
                 )}
                 {u.chapters.map(ch => {
                   const isActive = ch.choice_point === activeChoicePoint
+                  const isEditing = ch.choice_point === editingChoicePoint
                   return (
-                    <div key={ch.choice_point} className={`flex items-center gap-2 rounded px-2 py-1.5 ${isActive ? 'bg-amber-50 dark:bg-amber-900/20' : ''}`}>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                          {ch.chapter_label || ch.choice_point}
-                        </p>
-                        <p className="font-mono text-[10px] text-zinc-400">{ch.choice_point}</p>
+                    <div key={ch.choice_point} className={`rounded px-2 py-1.5 ${isActive ? 'bg-amber-50 dark:bg-amber-900/20' : ''}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+                            {ch.chapter_label || ch.choice_point}
+                          </p>
+                          <p className="font-mono text-[10px] text-zinc-400">{ch.choice_point}</p>
+                        </div>
+                        <StatusBadge status={ch.status} />
                       </div>
-                      <StatusBadge status={ch.status} />
-                      {isActive ? (
-                        <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">active</span>
-                      ) : (
-                        <button
-                          onClick={() => activate(ch.choice_point)}
-                          disabled={activating === ch.choice_point}
-                          className="rounded bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700 hover:bg-zinc-300 disabled:opacity-40 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-                        >
-                          {activating === ch.choice_point ? '…' : 'Activate'}
-                        </button>
-                      )}
+                      <div className="mt-1 flex gap-2">
+                        {isActive ? (
+                          <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">live</span>
+                        ) : (
+                          <button
+                            onClick={() => activate(ch.choice_point)}
+                            disabled={activating === ch.choice_point}
+                            className="rounded bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700 hover:bg-zinc-300 disabled:opacity-40 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                          >
+                            {activating === ch.choice_point ? '…' : 'Make live'}
+                          </button>
+                        )}
+                        {isEditing ? (
+                          <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">editing</span>
+                        ) : (
+                          <button
+                            onClick={() => onEdit(ch.choice_point)}
+                            className="rounded bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                          >
+                            Edit content
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -425,7 +444,8 @@ export default function AdminPage() {
   const [announcing, setAnnouncing] = useState(false)
   const [resetting, setResetting] = useState(false)
 
-  const [contentChoicePoint, setContentChoicePoint] = useState<string | null>(null)
+  const [editingChoicePoint, setEditingChoicePoint] = useState<string | null>(null)
+  const [editingChapterData, setEditingChapterData] = useState<ChapterData | null>(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -437,6 +457,8 @@ export default function AdminPage() {
         const data = await chapterRes.json()
         setChapter(data)
         setLoadError('')
+        // Default editing context to active chapter on first load only
+        setEditingChoicePoint(prev => prev ?? data.choice_point)
       } else {
         setLoadError('No active chapter found.')
       }
@@ -448,26 +470,29 @@ export default function AdminPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
+  // When editing context changes, reload chapter data + S3 content
   useEffect(() => {
-    if (!chapter || chapter.choice_point === contentChoicePoint) return
-    setContentChoicePoint(chapter.choice_point)
-    // Clear stale content when switching chapters
+    if (!editingChoicePoint) return
+
     setStoryContent('')
     setChoiceIntroContent('')
     setChoiceContents({})
     setEpilogueContent('')
 
-    fetch('/api/admin/chapter-content')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data) return
-        if (data.story_text) setStoryContent(data.story_text)
-        if (data.choice_intro_text) setChoiceIntroContent(data.choice_intro_text)
-        if (data.epilogue_text) setEpilogueContent(data.epilogue_text)
-        if (data.choice_outcome_texts) setChoiceContents(data.choice_outcome_texts)
-      })
-      .catch(() => {/* non-fatal */})
-  }, [chapter, contentChoicePoint])
+    const cp = encodeURIComponent(editingChoicePoint)
+    Promise.all([
+      fetch(`/api/admin/chapter-data?choice_point=${cp}`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/admin/chapter-content?choice_point=${cp}`).then(r => r.ok ? r.json() : null),
+    ]).then(([chData, content]) => {
+      if (chData) setEditingChapterData(chData)
+      if (content) {
+        if (content.story_text) setStoryContent(content.story_text)
+        if (content.choice_intro_text) setChoiceIntroContent(content.choice_intro_text)
+        if (content.epilogue_text) setEpilogueContent(content.epilogue_text)
+        if (content.choice_outcome_texts) setChoiceContents(content.choice_outcome_texts)
+      }
+    }).catch(() => {/* non-fatal */})
+  }, [editingChoicePoint])
 
   async function signOut() {
     await fetch('/api/admin/auth', { method: 'DELETE' })
@@ -478,7 +503,7 @@ export default function AdminPage() {
     type: 'story' | 'choice_intro' | 'choice_outcome' | 'epilogue',
     choice_id?: string
   ) {
-    if (!chapter) return
+    if (!editingChapterData) return
     const content =
       type === 'story' ? storyContent
       : type === 'choice_intro' ? choiceIntroContent
@@ -498,6 +523,7 @@ export default function AdminPage() {
       : (v: boolean) => setUploadingChoices(s => ({ ...s, [choice_id!]: v }))
 
     if (!content.trim()) { setStatus('Error: Content is empty.'); return }
+    if (!editingChoicePoint) { setStatus('Error: No editing context set.'); return }
 
     setUploading(true)
     setStatus('')
@@ -505,7 +531,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/upload-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ choice_point: chapter.choice_point, type, content, choice_id }),
+        body: JSON.stringify({ choice_point: editingChoicePoint, type, content, choice_id }),
       })
       const data = await res.json()
       if (res.ok) { setStatus(`Uploaded → ${data.s3_key}`); await loadData() }
@@ -568,7 +594,9 @@ export default function AdminPage() {
           <div className="lg:self-start">
             <UniverseNav
               activeChoicePoint={chapter?.choice_point}
+              editingChoicePoint={editingChoicePoint}
               onActivate={loadData}
+              onEdit={setEditingChoicePoint}
             />
           </div>
 
@@ -629,15 +657,19 @@ export default function AdminPage() {
             </Section>
 
             {/* Content upload */}
-            <Section title="Content">
+            <Section title={
+              editingChoicePoint && editingChoicePoint !== chapter?.choice_point
+                ? `Content — ${editingChoicePoint}`
+                : 'Content'
+            }>
               <div className="space-y-6">
                 <div>
                   <label className="mb-1.5 block text-xs text-zinc-500">
-                    Pre-choice story{chapter?.story_key ? ` — ${chapter.story_key}` : ' — not uploaded'}
+                    Pre-choice story{editingChapterData?.story_key ? ` — ${editingChapterData.story_key}` : ' — not uploaded'}
                   </label>
                   <textarea value={storyContent} onChange={e => setStoryContent(e.target.value)}
                     placeholder="Shown to readers while voting is open…" rows={6} className={monoInputClass} />
-                  <button onClick={() => uploadContent('story')} disabled={uploadingStory || !chapter} className={`mt-2 ${btnClass}`}>
+                  <button onClick={() => uploadContent('story')} disabled={uploadingStory || !editingChapterData} className={`mt-2 ${btnClass}`}>
                     {uploadingStory ? 'Uploading…' : 'Upload Story'}
                   </button>
                   <ActionStatus message={storyStatus} />
@@ -645,21 +677,21 @@ export default function AdminPage() {
 
                 <div>
                   <label className="mb-1.5 block text-xs text-zinc-500">
-                    Choice intro{chapter?.choice_intro_key ? ` — ${chapter.choice_intro_key}` : ' — not uploaded'}
+                    Choice intro{editingChapterData?.choice_intro_key ? ` — ${editingChapterData.choice_intro_key}` : ' — not uploaded'}
                   </label>
                   <p className="mb-2 text-xs text-zinc-400 dark:text-zinc-600">
                     Narrative bridge before the voting options. Choice labels and descriptions render automatically below it.
                   </p>
                   <textarea value={choiceIntroContent} onChange={e => setChoiceIntroContent(e.target.value)}
                     placeholder="Evelyn has only one chance…" rows={4} className={monoInputClass} />
-                  <button onClick={() => uploadContent('choice_intro')} disabled={uploadingChoiceIntro || !chapter} className={`mt-2 ${btnClass}`}>
+                  <button onClick={() => uploadContent('choice_intro')} disabled={uploadingChoiceIntro || !editingChapterData} className={`mt-2 ${btnClass}`}>
                     {uploadingChoiceIntro ? 'Uploading…' : 'Upload Choice Intro'}
                   </button>
                   <ActionStatus message={choiceIntroStatus} />
                 </div>
 
-                {chapter && Object.entries(chapter.choices ?? {}).map(([id, c]) => {
-                  const existingKey = chapter.choice_outcomes?.[id]
+                {editingChapterData && Object.entries(editingChapterData.choices ?? {}).map(([id, c]) => {
+                  const existingKey = editingChapterData.choice_outcomes?.[id]
                   return (
                     <div key={id}>
                       <label className="mb-1.5 block text-xs text-zinc-500">
@@ -668,7 +700,7 @@ export default function AdminPage() {
                       </label>
                       <textarea value={choiceContents[id] ?? ''} onChange={e => setChoiceContents(s => ({ ...s, [id]: e.target.value }))}
                         placeholder={`What happens if the community chose "${c.label}"…`} rows={6} className={monoInputClass} />
-                      <button onClick={() => uploadContent('choice_outcome', id)} disabled={uploadingChoices[id] || !chapter} className={`mt-2 ${btnClass}`}>
+                      <button onClick={() => uploadContent('choice_outcome', id)} disabled={uploadingChoices[id] || !editingChapterData} className={`mt-2 ${btnClass}`}>
                         {uploadingChoices[id] ? 'Uploading…' : `Upload Outcome ${id}`}
                       </button>
                       <ActionStatus message={choiceStatuses[id]} />
@@ -678,11 +710,11 @@ export default function AdminPage() {
 
                 <div>
                   <label className="mb-1.5 block text-xs text-zinc-500">
-                    Epilogue{chapter?.epilogue_key ? ` — ${chapter.epilogue_key}` : ' — not uploaded'}
+                    Epilogue{editingChapterData?.epilogue_key ? ` — ${editingChapterData.epilogue_key}` : ' — not uploaded'}
                   </label>
                   <textarea value={epilogueContent} onChange={e => setEpilogueContent(e.target.value)}
                     placeholder="Closing beats shown after the outcome, regardless of choice…" rows={6} className={monoInputClass} />
-                  <button onClick={() => uploadContent('epilogue')} disabled={uploadingEpilogue || !chapter} className={`mt-2 ${btnClass}`}>
+                  <button onClick={() => uploadContent('epilogue')} disabled={uploadingEpilogue || !editingChapterData} className={`mt-2 ${btnClass}`}>
                     {uploadingEpilogue ? 'Uploading…' : 'Upload Epilogue'}
                   </button>
                   <ActionStatus message={epilogueStatus} />
