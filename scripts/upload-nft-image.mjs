@@ -41,11 +41,11 @@ const fileBuffer = readFileSync(FILE)
 const blob = new Blob([fileBuffer])
 const form = new FormData()
 form.append('file', blob, basename(FILE))
-form.append('name', NAME)
+form.append('pinataMetadata', JSON.stringify({ name: NAME }))
 
 console.log(`Uploading "${NAME}" (${basename(FILE)})...`)
 
-const res = await fetch('https://uploads.pinata.cloud/v3/files', {
+const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
   method: 'POST',
   headers: { Authorization: `Bearer ${jwt}` },
   body: form,
@@ -58,9 +58,9 @@ if (!res.ok) {
   process.exit(1)
 }
 
-const cid = data.data?.cid
+const cid = data.IpfsHash
 console.log(`\nUploaded successfully.`)
 console.log(`CID:         ${cid}`)
 console.log(`Gateway URL: https://gateway.pinata.cloud/ipfs/${cid}`)
 console.log(`\nUse with mint scripts:`)
-console.log(`  --uri https://gateway.pinata.cloud/ipfs/${cid}`)
+console.log(`  --uri ipfs://${cid}`)
