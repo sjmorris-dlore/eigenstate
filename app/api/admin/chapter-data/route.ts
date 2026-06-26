@@ -22,20 +22,38 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const { choice_point, choices } = await request.json() as {
+  const body = await request.json() as {
     choice_point: string
-    choices: Record<string, { label: string; description: string }>
+    choices?: Record<string, { label: string; description: string }>
+    prompt?: string
   }
 
-  if (!choice_point || !choices) {
-    return Response.json({ error: 'choice_point and choices are required' }, { status: 400 })
+  const { choice_point, choices, prompt } = body
+
+  if (!choice_point || (!choices && prompt === undefined)) {
+    return Response.json({ error: 'choice_point and at least one field required' }, { status: 400 })
+  }
+
+  const setParts: string[] = []
+  const names: Record<string, string> = {}
+  const values: Record<string, unknown> = {}
+
+  if (choices) {
+    setParts.push('choices = :choices')
+    values[':choices'] = choices
+  }
+  if (prompt !== undefined) {
+    setParts.push('#p = :prompt')
+    names['#p'] = 'prompt'
+    values[':prompt'] = prompt
   }
 
   await dynamo.send(new UpdateCommand({
     TableName: 'eigenthrope_chapters',
     Key: { choice_point },
-    UpdateExpression: 'SET choices = :choices',
-    ExpressionAttributeValues: { ':choices': choices },
+    UpdateExpression: `SET ${setParts.join(', ')}`,
+    ...(Object.keys(names).length ? { ExpressionAttributeNames: names } : {}),
+    ExpressionAttributeValues: values,
   }))
 
   return Response.json({ ok: true })

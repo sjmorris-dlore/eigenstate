@@ -437,6 +437,9 @@ export default function AdminPage() {
   const [resetHours, setResetHours] = useState(24)
   const [resetStatus, setResetStatus] = useState('')
 
+  const [editingPrompt, setEditingPrompt] = useState('')
+  const [savingPrompt, setSavingPrompt] = useState(false)
+  const [promptStatus, setPromptStatus] = useState('')
   const [editingChoices, setEditingChoices] = useState<Record<string, { label: string; description: string }>>({})
   const [savingChoices, setSavingChoices] = useState(false)
   const [choicesEditStatus, setChoicesEditStatus] = useState('')
@@ -490,8 +493,10 @@ export default function AdminPage() {
     ]).then(([chData, content]) => {
       if (chData) {
         setEditingChapterData(chData)
+        setEditingPrompt(chData.prompt ?? '')
         setEditingChoices(chData.choices ?? {})
         setChoicesEditStatus('')
+        setPromptStatus('')
       }
       if (content) {
         if (content.story_text) setStoryContent(content.story_text)
@@ -548,6 +553,29 @@ export default function AdminPage() {
       setStatus('Error: Upload failed.')
     }
     setUploading(false)
+  }
+
+  async function savePrompt() {
+    if (!editingChoicePoint) return
+    setSavingPrompt(true)
+    setPromptStatus('')
+    try {
+      const res = await fetch('/api/admin/chapter-data', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice_point: editingChoicePoint, prompt: editingPrompt }),
+      })
+      if (res.ok) {
+        setPromptStatus('Saved.')
+        setEditingChapterData(prev => prev ? { ...prev, prompt: editingPrompt } : prev)
+      } else {
+        const data = await res.json()
+        setPromptStatus(`Error: ${data.error}`)
+      }
+    } catch {
+      setPromptStatus('Error: Request failed.')
+    }
+    setSavingPrompt(false)
   }
 
   async function saveChoices() {
@@ -720,6 +748,25 @@ export default function AdminPage() {
                   </button>
                   <ActionStatus message={choiceIntroStatus} />
                 </div>
+
+                {/* Prompt — admin/Discord only, never shown to players */}
+                {editingChapterData && (
+                  <div>
+                    <label className="mb-1.5 block text-xs text-zinc-500">
+                      Prompt <span className="text-zinc-400 dark:text-zinc-600">(Discord &amp; admin only — not shown to players)</span>
+                    </label>
+                    <textarea
+                      value={editingPrompt}
+                      onChange={e => setEditingPrompt(e.target.value)}
+                      rows={2}
+                      className={monoInputClass}
+                    />
+                    <button onClick={savePrompt} disabled={savingPrompt} className={`mt-2 ${btnClass}`}>
+                      {savingPrompt ? 'Saving…' : 'Save Prompt'}
+                    </button>
+                    <ActionStatus message={promptStatus} />
+                  </div>
+                )}
 
                 {/* Editable choice labels and descriptions */}
                 {editingChapterData && (
