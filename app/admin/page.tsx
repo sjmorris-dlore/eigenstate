@@ -202,8 +202,10 @@ function normalizeIpfsUri(input: string): string {
 }
 
 function ipfsToGateway(uri: string) {
-  const gateway = process.env.NEXT_PUBLIC_PINATA_GATEWAY ?? 'gateway.pinata.cloud'
-  if (uri.startsWith('ipfs://')) return uri.replace('ipfs://', `https://${gateway}/ipfs/`)
+  if (uri.startsWith('ipfs://')) {
+    const cid = uri.slice('ipfs://'.length)
+    return `/api/admin/ipfs-image?cid=${encodeURIComponent(cid)}`
+  }
   return uri
 }
 
