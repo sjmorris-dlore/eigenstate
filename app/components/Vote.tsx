@@ -225,7 +225,7 @@ export default function Vote({ account }: VoteProps) {
             >
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Choice {id}</span>
               <span className="font-medium text-zinc-900 dark:text-zinc-50">{choice.label}</span>
-              <span className="text-sm text-zinc-500">{choice.description}</span>
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">{choice.description}</span>
             </button>
           ))}
         </div>

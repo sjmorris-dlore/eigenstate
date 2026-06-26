@@ -27,7 +27,7 @@ export default function ObserverProfile({ account }: { account: string }) {
   ].filter(Boolean).join(' · ')
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col items-center gap-1 text-center">
       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
         {profile.tier}
       </p>
