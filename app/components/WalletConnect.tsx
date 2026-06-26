@@ -107,6 +107,12 @@ function OnboardingInstructions() {
         </ol>
 
         <p className="rounded-lg bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+          Each vote sends 1 drop of XRP, or 0.000001 XRP, to the Eigenthrope vault and also pays
+          the tiny XRPL network fee shown in Xaman. If 1 XRP were worth $1, 1 drop would be
+          $0.000001.
+        </p>
+
+        <p className="rounded-lg bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
           Eigenthrope will never ask for your secret numbers, recovery phrase, family seed, or
           private key. Only sign requests you understand.
         </p>

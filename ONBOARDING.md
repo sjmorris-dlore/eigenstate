@@ -117,6 +117,8 @@ When the vote is accepted, Eigenthrope shows:
 
 That means your observation has been submitted as an XRP Ledger transaction. It becomes part of the public history of this universe.
 
+Each vote sends **1 drop of XRP** to the Eigenthrope vault and also pays the tiny XRP Ledger network fee shown in Xaman before you sign. One drop is **0.000001 XRP**. If 1 XRP were worth $1, then 1 drop would be **$0.000001**.
+
 For QR scanning help, use Xaman's guide:
 
 - [How to scan a QR code](https://help.xaman.app/app/getting-started-with-xaman/how-to-scan-a-qr-code)
@@ -207,4 +209,3 @@ If voting is still open, Eigenthrope may let you change your observation. The la
 7. Choose your observation.
 8. Sign with Xaman.
 9. Watch the community collapse possibility into history.
-
