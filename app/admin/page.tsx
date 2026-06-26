@@ -437,6 +437,10 @@ export default function AdminPage() {
   const [resetHours, setResetHours] = useState(24)
   const [resetStatus, setResetStatus] = useState('')
 
+  const [editingChoices, setEditingChoices] = useState<Record<string, { label: string; description: string }>>({})
+  const [savingChoices, setSavingChoices] = useState(false)
+  const [choicesEditStatus, setChoicesEditStatus] = useState('')
+
   const [uploadingStory, setUploadingStory] = useState(false)
   const [uploadingChoiceIntro, setUploadingChoiceIntro] = useState(false)
   const [uploadingChoices, setUploadingChoices] = useState<Record<string, boolean>>({})
@@ -484,7 +488,11 @@ export default function AdminPage() {
       fetch(`/api/admin/chapter-data?choice_point=${cp}`).then(r => r.ok ? r.json() : null),
       fetch(`/api/admin/chapter-content?choice_point=${cp}`).then(r => r.ok ? r.json() : null),
     ]).then(([chData, content]) => {
-      if (chData) setEditingChapterData(chData)
+      if (chData) {
+        setEditingChapterData(chData)
+        setEditingChoices(chData.choices ?? {})
+        setChoicesEditStatus('')
+      }
       if (content) {
         if (content.story_text) setStoryContent(content.story_text)
         if (content.choice_intro_text) setChoiceIntroContent(content.choice_intro_text)
@@ -540,6 +548,29 @@ export default function AdminPage() {
       setStatus('Error: Upload failed.')
     }
     setUploading(false)
+  }
+
+  async function saveChoices() {
+    if (!editingChoicePoint) return
+    setSavingChoices(true)
+    setChoicesEditStatus('')
+    try {
+      const res = await fetch('/api/admin/chapter-data', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice_point: editingChoicePoint, choices: editingChoices }),
+      })
+      if (res.ok) {
+        setChoicesEditStatus('Saved.')
+        setEditingChapterData(prev => prev ? { ...prev, choices: editingChoices } : prev)
+      } else {
+        const data = await res.json()
+        setChoicesEditStatus(`Error: ${data.error}`)
+      }
+    } catch {
+      setChoicesEditStatus('Error: Request failed.')
+    }
+    setSavingChoices(false)
   }
 
   async function announce() {
@@ -689,6 +720,40 @@ export default function AdminPage() {
                   </button>
                   <ActionStatus message={choiceIntroStatus} />
                 </div>
+
+                {/* Editable choice labels and descriptions */}
+                {editingChapterData && (
+                  <div>
+                    <label className="mb-1.5 block text-xs text-zinc-500">Choice labels &amp; descriptions</label>
+                    <div className="space-y-3">
+                      {Object.entries(editingChoices).map(([id, c]) => (
+                        <div key={id} className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-4 text-center text-[10px] font-bold text-zinc-400">{id}</span>
+                            <input
+                              value={c.label}
+                              onChange={e => setEditingChoices(prev => ({ ...prev, [id]: { ...prev[id], label: e.target.value } }))}
+                              placeholder="Label"
+                              className={`${smallInputClass} flex-1`}
+                            />
+                          </div>
+                          <div className="pl-6">
+                            <input
+                              value={c.description}
+                              onChange={e => setEditingChoices(prev => ({ ...prev, [id]: { ...prev[id], description: e.target.value } }))}
+                              placeholder="Description (shown on button)"
+                              className={smallInputClass}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={saveChoices} disabled={savingChoices} className={`mt-2 ${btnClass}`}>
+                      {savingChoices ? 'Saving…' : 'Save Choices'}
+                    </button>
+                    <ActionStatus message={choicesEditStatus} />
+                  </div>
+                )}
 
                 {editingChapterData && Object.entries(editingChapterData.choices ?? {}).map(([id, c]) => {
                   const existingKey = editingChapterData.choice_outcomes?.[id]

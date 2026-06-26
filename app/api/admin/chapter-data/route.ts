@@ -1,4 +1,4 @@
-import { GetCommand } from '@aws-sdk/lib-dynamodb'
+import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import { dynamo } from '@/lib/dynamo'
 
 export async function GET(request: Request) {
@@ -19,4 +19,24 @@ export async function GET(request: Request) {
   }
 
   return Response.json(result.Item)
+}
+
+export async function PATCH(request: Request) {
+  const { choice_point, choices } = await request.json() as {
+    choice_point: string
+    choices: Record<string, { label: string; description: string }>
+  }
+
+  if (!choice_point || !choices) {
+    return Response.json({ error: 'choice_point and choices are required' }, { status: 400 })
+  }
+
+  await dynamo.send(new UpdateCommand({
+    TableName: 'eigenthrope_chapters',
+    Key: { choice_point },
+    UpdateExpression: 'SET choices = :choices',
+    ExpressionAttributeValues: { ':choices': choices },
+  }))
+
+  return Response.json({ ok: true })
 }
