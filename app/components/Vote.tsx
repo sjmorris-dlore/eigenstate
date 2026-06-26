@@ -199,13 +199,14 @@ export default function Vote({ account }: VoteProps) {
         <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">
           Your Observation
         </p>
-        <p className="text-base leading-7 text-zinc-800 dark:text-zinc-200">
-          {chapter.prompt}
-        </p>
-        {chapter.choice_intro_text && (
-          <div className="mt-5">
+        {chapter.choice_intro_text ? (
+          <div className="mt-1">
             <ReactMarkdown components={storyComponents}>{chapter.choice_intro_text}</ReactMarkdown>
           </div>
+        ) : (
+          <p className="text-base leading-7 text-zinc-800 dark:text-zinc-200">
+            {chapter.prompt}
+          </p>
         )}
         <ChapterTimer className="mt-2" />
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
