@@ -17,6 +17,104 @@ interface WalletConnectProps {
   onAccountChange?: (account: string | null) => void
 }
 
+function OnboardingInstructions() {
+  return (
+    <details className="group w-full max-w-2xl rounded-xl border border-zinc-200 bg-white px-5 py-4 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-zinc-900 marker:hidden dark:text-zinc-50">
+        <span>Need a Xaman wallet?</span>
+        <span className="text-xs uppercase tracking-[0.2em] text-zinc-400 group-open:hidden">
+          Show
+        </span>
+        <span className="hidden text-xs uppercase tracking-[0.2em] text-zinc-400 group-open:inline">
+          Hide
+        </span>
+      </summary>
+
+      <div className="mt-5 space-y-5 border-t border-zinc-100 pt-5 text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+        <div>
+          <p className="font-medium text-zinc-900 dark:text-zinc-50">
+            Your wallet is your Observer identity.
+          </p>
+          <p className="mt-1">
+            Eigenthrope does not use email or passwords. Xaman lets you connect, sign observations,
+            build Resonance, and keep future artifacts in a wallet you control.
+          </p>
+        </div>
+
+        <ol className="space-y-4">
+          <li>
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">
+              1. Install Xaman on your phone
+            </p>
+            <p className="mt-1">
+              Use Xaman&apos;s official setup guide for current App Store and Google Play links.
+            </p>
+            <a
+              href="https://help.xaman.app/app/getting-started-with-xaman/installing-xumm"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex text-xs font-medium text-zinc-500 underline underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-200"
+            >
+              Xaman installation guide
+            </a>
+          </li>
+
+          <li>
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">
+              2. Create or import an XRPL account
+            </p>
+            <p className="mt-1">
+              If Xaman shows recovery information, write it down somewhere offline. Eigenthrope
+              cannot recover your wallet for you.
+            </p>
+            <a
+              href="https://help.xaman.app/app/getting-started-with-xaman/your-first-xrp-ledger-account"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex text-xs font-medium text-zinc-500 underline underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-200"
+            >
+              First XRPL account guide
+            </a>
+          </li>
+
+          <li>
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">
+              3. Activate the account with XRP
+            </p>
+            <p className="mt-1">
+              New XRPL accounts need a small XRP reserve before they can sign normal transactions.
+              This is an XRP Ledger requirement, not an Eigenthrope fee.
+            </p>
+            <a
+              href="https://help.xaman.app/app/getting-started-with-xaman/how-to-activate-a-new-xrpl-account"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex text-xs font-medium text-zinc-500 underline underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-200"
+            >
+              Account activation guide
+            </a>
+          </li>
+
+          <li>
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">
+              4. Return here and connect
+            </p>
+            <p className="mt-1">
+              Press <span className="font-medium text-zinc-900 dark:text-zinc-50">Connect Xaman Wallet</span>,
+              approve the connection in Xaman, then sign your first observation when you vote.
+            </p>
+          </li>
+        </ol>
+
+        <p className="rounded-lg bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+          Eigenthrope will never ask for your secret numbers, recovery phrase, family seed, or
+          private key. Only sign requests you understand.
+        </p>
+      </div>
+    </details>
+  )
+}
+
 export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
   const [account, setAccount] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
@@ -105,6 +203,7 @@ export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
       >
         {connecting ? 'Connecting…' : 'Connect Xaman Wallet'}
       </button>
+      <OnboardingInstructions />
     </div>
   )
 }
