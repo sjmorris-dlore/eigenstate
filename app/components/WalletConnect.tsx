@@ -177,6 +177,23 @@ export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
     setupXumm()
   }, [setupXumm])
 
+  // Poll state() while connecting — fallback for when SDK events don't fire
+  // after reconnect (event system can be unreliable on same-page reuse)
+  useEffect(() => {
+    if (!connecting) return
+    const interval = setInterval(async () => {
+      if (!xummRef.current) return
+      const s = await xummRef.current.state()
+      const acct = s?.me?.account ?? null
+      if (acct) {
+        clearInterval(interval)
+        updateAccount(acct)
+        setConnecting(false)
+      }
+    }, 1500)
+    return () => clearInterval(interval)
+  }, [connecting, updateAccount])
+
   const connect = () => {
     if (!xummRef.current) return
     setConnecting(true)
@@ -187,9 +204,6 @@ export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
     if (!xummRef.current) return
     xummRef.current.logout()
     updateAccount(null)
-    // Recreate the SDK instance so the next connect starts with clean state,
-    // exactly as a page reload would. Without this, post-logout event listeners
-    // may be stale and the success event never propagates the new account.
     setupXumm()
   }
 
