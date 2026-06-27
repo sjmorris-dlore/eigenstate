@@ -7,7 +7,7 @@ export default function GameplayMenu() {
         Gameplay
       </summary>
 
-      <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-xl border border-zinc-200 bg-zinc-50 p-5 shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="fixed left-2 right-2 top-14 z-50 rounded-xl border border-zinc-200 bg-zinc-50 p-5 shadow-lg dark:border-zinc-800 dark:bg-zinc-950 sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-2 sm:w-80">
         <div className="space-y-4 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
           <div>
             <p className="font-medium text-zinc-900 dark:text-zinc-50">1. Read the chapter</p>
