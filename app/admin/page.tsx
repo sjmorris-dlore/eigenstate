@@ -641,6 +641,9 @@ export default function AdminPage() {
   const [resetting, setResetting] = useState(false)
   const [resettingGame, setResettingGame] = useState(false)
   const [resetGameStatus, setResetGameStatus] = useState('')
+  const [timerMinutes, setTimerMinutes] = useState(5)
+  const [settingTimer, setSettingTimer] = useState(false)
+  const [timerStatus, setTimerStatus] = useState('')
 
   const [editingChoicePoint, setEditingChoicePoint] = useState<string | null>(null)
   const [editingChapterData, setEditingChapterData] = useState<ChapterData | null>(null)
@@ -837,6 +840,30 @@ export default function AdminPage() {
       } else setResetGameStatus(`Error: ${data.error}`)
     } catch { setResetGameStatus('Error: Request failed.') }
     setResettingGame(false)
+  }
+
+  async function setTimer(isoString: string) {
+    if (!chapter) return
+    setSettingTimer(true)
+    setTimerStatus('')
+    try {
+      const res = await fetch('/api/admin/chapter-data', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice_point: chapter.choice_point, voting_closes_at: isoString }),
+      })
+      if (res.ok) {
+        const label = new Date(isoString) <= new Date()
+          ? 'Timer expired.'
+          : `Deadline set to ${new Date(isoString).toLocaleTimeString()}.`
+        setTimerStatus(label)
+        await loadData()
+      } else {
+        const data = await res.json()
+        setTimerStatus(`Error: ${data.error}`)
+      }
+    } catch { setTimerStatus('Error: Request failed.') }
+    setSettingTimer(false)
   }
 
   const total = tally ? Object.values(tally.counts).reduce((a, b) => a + b, 0) : 0
@@ -1078,6 +1105,55 @@ export default function AdminPage() {
                     {announcing ? 'Announcing…' : 'Announce on Discord'}
                   </button>
                   <ActionStatus message={announceStatus} />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-xs text-zinc-500">
+                    Adjust the active chapter&apos;s voting deadline. Useful for testing timer behaviour.
+                    {chapter?.voting_closes_at && (
+                      <span className="ml-1 text-zinc-400">
+                        Current: {new Date(chapter.voting_closes_at).toLocaleString()}
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[1, 5, 15, 60].map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setTimer(new Date(Date.now() + m * 60 * 1000).toISOString())}
+                        disabled={settingTimer || !chapter}
+                        className={smallBtnClass}
+                      >
+                        +{m < 60 ? `${m}m` : '1h'}
+                      </button>
+                    ))}
+                    <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={timerMinutes}
+                        onChange={e => setTimerMinutes(Math.max(1, Number(e.target.value)))}
+                        min={1}
+                        className="w-14 rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                      <span className="text-xs text-zinc-400">min</span>
+                      <button
+                        onClick={() => setTimer(new Date(Date.now() + timerMinutes * 60 * 1000).toISOString())}
+                        disabled={settingTimer || !chapter}
+                        className={smallBtnClass}
+                      >
+                        Set
+                      </button>
+                    </div>
+                    <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                    <button
+                      onClick={() => setTimer(new Date(Date.now() - 1000).toISOString())}
+                      disabled={settingTimer || !chapter}
+                      className="rounded bg-amber-600 px-2 py-1 text-[11px] text-white hover:bg-amber-500 disabled:opacity-40"
+                    >
+                      Expire Now
+                    </button>
+                  </div>
+                  <ActionStatus message={timerStatus} />
                 </div>
                 <div>
                   <p className="mb-2 text-xs text-zinc-500">

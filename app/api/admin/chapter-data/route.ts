@@ -28,11 +28,12 @@ export async function PATCH(request: Request) {
     prompt?: string
     winner_nft_uri?: string
     participation_nft_uri?: string
+    voting_closes_at?: string
   }
 
-  const { choice_point, choices, prompt, winner_nft_uri, participation_nft_uri } = body
+  const { choice_point, choices, prompt, winner_nft_uri, participation_nft_uri, voting_closes_at } = body
 
-  if (!choice_point || (!choices && prompt === undefined && winner_nft_uri === undefined && participation_nft_uri === undefined)) {
+  if (!choice_point || (!choices && prompt === undefined && winner_nft_uri === undefined && participation_nft_uri === undefined && voting_closes_at === undefined)) {
     return Response.json({ error: 'choice_point and at least one field required' }, { status: 400 })
   }
 
@@ -56,6 +57,10 @@ export async function PATCH(request: Request) {
   if (participation_nft_uri !== undefined) {
     setParts.push('participation_nft_uri = :pnuri')
     values[':pnuri'] = participation_nft_uri
+  }
+  if (voting_closes_at !== undefined) {
+    setParts.push('voting_closes_at = :vca')
+    values[':vca'] = voting_closes_at
   }
 
   await dynamo.send(new UpdateCommand({
