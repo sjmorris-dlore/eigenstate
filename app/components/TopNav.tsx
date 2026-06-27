@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import ThemeToggle from './ThemeToggle'
+import GameplayMenu from './GameplayMenu'
 
 const DISCORD_URL = process.env.NEXT_PUBLIC_DISCORD_URL
 
@@ -23,6 +24,7 @@ export default function TopNav() {
             Discord
           </a>
         )}
+        <GameplayMenu />
       </div>
       <ThemeToggle />
     </nav>
