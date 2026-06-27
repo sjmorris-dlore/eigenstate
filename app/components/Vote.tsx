@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import type { ChapterData } from '@/app/api/chapter/route'
@@ -76,16 +76,24 @@ export default function Vote({ account }: VoteProps) {
   const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  useEffect(() => {
+  const loadChapter = useCallback(() => {
+    setChapter(null)
+    setError(null)
     fetch('/api/chapter')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then(setChapter)
       .catch(() => setError('Failed to load chapter.'))
+  }, [])
 
+  useEffect(() => {
+    loadChapter()
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [])
+  }, [loadChapter])
 
   const castVote = async (choice: string) => {
     if (!chapter) return
@@ -149,6 +157,19 @@ export default function Vote({ account }: VoteProps) {
   }
 
   if (!chapter) {
+    if (error) {
+      return (
+        <div className="flex flex-col items-center gap-2 text-center">
+          <p className="text-sm text-zinc-500">{error}</p>
+          <button
+            onClick={loadChapter}
+            className="text-xs text-zinc-400 underline hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            Try again
+          </button>
+        </div>
+      )
+    }
     return <p className="text-sm text-zinc-400">Loading…</p>
   }
 

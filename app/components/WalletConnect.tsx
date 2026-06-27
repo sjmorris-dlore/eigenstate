@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface XummState {
   me?: { account?: string }
@@ -126,53 +126,56 @@ export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
   const [connecting, setConnecting] = useState(false)
   const xummRef = useRef<XummInstance | null>(null)
 
-  const updateAccount = (value: string | null) => {
-    setAccount(value)
-    onAccountChange?.(value)
-  }
+  // Always-fresh ref so event callbacks never capture a stale onAccountChange
+  const onAccountChangeRef = useRef(onAccountChange)
+  useEffect(() => { onAccountChangeRef.current = onAccountChange })
 
-  useEffect(() => {
+  const updateAccount = useCallback((value: string | null) => {
+    setAccount(value)
+    onAccountChangeRef.current?.(value)
+  }, [])
+
+  // Extracted so it can be called both on mount and after disconnect
+  const setupXumm = useCallback(async () => {
     const apiKey = process.env.NEXT_PUBLIC_XAMAN_API_KEY
     if (!apiKey) return
 
-    async function init() {
-      const { XummPkce } = await import('xumm-oauth2-pkce')
-      const xumm = new XummPkce(apiKey as string) as unknown as XummInstance
-      xummRef.current = xumm
+    const { XummPkce } = await import('xumm-oauth2-pkce')
+    const xumm = new XummPkce(apiKey as string) as unknown as XummInstance
+    xummRef.current = xumm
 
-      const handleSession = async () => {
-        // state() may not reflect the new session immediately after success —
-        // retry a few times before giving up
-        let acct: string | null = null
-        for (let i = 0; i < 5 && !acct; i++) {
-          if (i > 0) await new Promise(r => setTimeout(r, 400))
-          const s = await xumm.state()
-          acct = s?.me?.account ?? null
-        }
-        updateAccount(acct)
-        setConnecting(false)
+    const handleSession = async () => {
+      // state() may lag slightly after the success event — retry a few times
+      let acct: string | null = null
+      for (let i = 0; i < 5 && !acct; i++) {
+        if (i > 0) await new Promise(r => setTimeout(r, 400))
+        const s = await xumm.state()
+        acct = s?.me?.account ?? null
       }
-
-      xumm.on('success', handleSession)
-      xumm.on('retrieved', handleSession)
-      xumm.on('loggedout', () => {
-        updateAccount(null)
-        setConnecting(false)
-      })
-
-      xumm.on('error', () => {
-        setConnecting(false)
-      })
-
-      // Handles returning from OAuth redirect and existing sessions
-      const state = await xumm.state()
-      if (state?.me?.account) {
-        updateAccount(state.me.account)
-      }
+      updateAccount(acct)
+      setConnecting(false)
     }
 
-    init()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    xumm.on('success', handleSession)
+    xumm.on('retrieved', handleSession)
+    xumm.on('loggedout', () => {
+      updateAccount(null)
+      setConnecting(false)
+    })
+    xumm.on('error', () => {
+      setConnecting(false)
+    })
+
+    // Handles returning from OAuth redirect and restored sessions
+    const state = await xumm.state()
+    if (state?.me?.account) {
+      updateAccount(state.me.account)
+    }
+  }, [updateAccount])
+
+  useEffect(() => {
+    setupXumm()
+  }, [setupXumm])
 
   const connect = () => {
     if (!xummRef.current) return
@@ -184,6 +187,10 @@ export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
     if (!xummRef.current) return
     xummRef.current.logout()
     updateAccount(null)
+    // Recreate the SDK instance so the next connect starts with clean state,
+    // exactly as a page reload would. Without this, post-logout event listeners
+    // may be stale and the success event never propagates the new account.
+    setupXumm()
   }
 
   if (account) {
