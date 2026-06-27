@@ -28,7 +28,7 @@ export async function postDiscord(embed: DiscordEmbed): Promise<void> {
   }
 }
 
-const SITE_URL = 'https://eigenstate.sjmorriswrites.com'
+const SITE_URL = 'https://eigenthrope.sjmorriswrites.com'
 
 export function chapterOpenedEmbed(
   chapterLabel: string,
