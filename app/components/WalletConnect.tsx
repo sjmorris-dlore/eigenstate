@@ -224,12 +224,10 @@ export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
   const disconnect = () => {
     if (!xummRef.current) return
     log('disconnect() called')
-    xummRef.current.logout()
+    // Do NOT call xumm.logout() — it corrupts PKCE state so the next authorize()
+    // fails with event:error on the redirect-back. The session stays valid in
+    // localStorage; reconnect fires retrieved immediately without a Xaman prompt.
     updateAccount(null)
-    // Do NOT call setupXumm() here — on mobile the next authorize() triggers a
-    // page redirect/reload, which re-runs setupXumm via useEffect on the fresh page.
-    // Creating a new XummPkce instance here stomps on the PKCE verifier in storage,
-    // causing the code exchange on the redirect-back to fail with event:error.
   }
 
   const DebugPanel = () => (
