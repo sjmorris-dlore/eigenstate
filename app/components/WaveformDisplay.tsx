@@ -52,9 +52,11 @@ const COLORS = {
   },
 }
 
-export default function WaveformDisplay() {
-  const [p, setP] = useState(0.5)
-  const [hasVotes, setHasVotes] = useState(false)
+export default function WaveformDisplay({ counts }: { counts: Record<string, number> | null }) {
+  const total = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : 0
+  const hasVotes = total > 0
+  const p = hasVotes ? Math.max(...Object.values(counts!)) / total : 0.5
+
   const [isDark, setIsDark] = useState(false)
 
   // Watch for .dark class changes on <html>
@@ -65,26 +67,6 @@ export default function WaveformDisplay() {
     const observer = new MutationObserver(check)
     observer.observe(el, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
-  }, [])
-
-  // Tally polling
-  useEffect(() => {
-    const update = async () => {
-      try {
-        const res = await fetch('/api/tally')
-        if (!res.ok) return
-        const data = await res.json()
-        const counts: Record<string, number> = data.counts ?? {}
-        const total = Object.values(counts).reduce((a, b) => a + b, 0)
-        if (total === 0) return
-        const max = Math.max(...Object.values(counts))
-        setP(max / total)
-        setHasVotes(true)
-      } catch { /* ignore */ }
-    }
-    update()
-    const id = setInterval(update, 15000)
-    return () => clearInterval(id)
   }, [])
 
   const t = Math.max(0, Math.min(1, (p - 0.5) * 2))

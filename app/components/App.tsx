@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import WalletConnect from './WalletConnect'
 import ObserverProfile from './ObserverProfile'
 import ArtifactClaim from './ArtifactClaim'
@@ -9,8 +9,26 @@ import WaveformDisplay from './WaveformDisplay'
 import ChapterArtifact from './ChapterArtifact'
 import Tally from './Tally'
 
+interface TallyData {
+  counts: Record<string, number>
+  choices: Record<string, { label: string; description: string }>
+}
+
 export default function App() {
   const [account, setAccount] = useState<string | null>(null)
+  const [tally, setTally] = useState<TallyData | null>(null)
+
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/tally')
+        if (res.ok) setTally(await res.json())
+      } catch { /* ignore */ }
+    }
+    poll()
+    const id = setInterval(poll, 15000)
+    return () => clearInterval(id)
+  }, [])
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -21,7 +39,7 @@ export default function App() {
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           {account && <ArtifactClaim key={account} account={account} />}
           {account && <Vote key={account} account={account} />}
-          <Tally />
+          <Tally tally={tally} />
         </div>
 
         {/* Sticky sidebar */}
@@ -31,7 +49,7 @@ export default function App() {
               <ObserverProfile account={account} />
             </div>
           )}
-          <WaveformDisplay />
+          <WaveformDisplay counts={tally?.counts ?? null} />
           <ChapterArtifact />
         </aside>
 

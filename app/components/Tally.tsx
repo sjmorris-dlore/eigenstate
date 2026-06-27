@@ -1,26 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-
 interface TallyData {
   counts: Record<string, number>
   choices: Record<string, { label: string; description: string }>
 }
 
-export default function Tally() {
-  const [tally, setTally] = useState<TallyData | null>(null)
-
-  const fetchTally = async () => {
-    const res = await fetch('/api/tally')
-    if (res.ok) setTally(await res.json())
-  }
-
-  useEffect(() => {
-    fetchTally()
-    const interval = setInterval(fetchTally, 15000)
-    return () => clearInterval(interval)
-  }, [])
-
+export default function Tally({ tally }: { tally: TallyData | null }) {
   if (!tally) return null
 
   const total = Object.values(tally.counts).reduce((a, b) => a + b, 0)
