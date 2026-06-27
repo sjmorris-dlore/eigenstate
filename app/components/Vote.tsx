@@ -75,6 +75,11 @@ export default function Vote({ account }: VoteProps) {
   const [voted, setVoted] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const signRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (qr) signRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [qr])
 
   const loadChapter = useCallback(() => {
     setChapter(null)
@@ -192,9 +197,9 @@ export default function Vote({ account }: VoteProps) {
 
   if (qr && signUrl) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Scan with Xaman to sign your vote
+      <div ref={signRef} className="flex flex-col items-center gap-4">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Sign your observation in Xaman
         </p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={qr} alt="Xaman sign request QR code" width={180} height={180} />
@@ -206,6 +211,9 @@ export default function Vote({ account }: VoteProps) {
         >
           Open in Xaman
         </a>
+        <p className="max-w-xs text-center text-xs text-zinc-400 dark:text-zinc-500">
+          A sign request has been sent to your Xaman wallet. Open the app and approve it to record your vote on the ledger.
+        </p>
         <button onClick={cancel} className="text-xs text-zinc-400 underline">
           Cancel
         </button>

@@ -18,7 +18,7 @@ function HowItWorks() {
 
         <div>
           <p className="font-medium text-zinc-900 dark:text-zinc-50">2. Vote</p>
-          <p className="mt-1">Your vote is signed with your wallet and woven permanently into the XRP Ledger. It cannot be altered or erased.</p>
+          <p className="mt-1">Your vote is signed with your wallet and woven permanently into the XRP Ledger. You can change your mind and vote again — votes cannot be removed from the ledger, but only your most recent vote counts toward the outcome.</p>
         </div>
 
         <div>
