@@ -140,11 +140,14 @@ export default function WalletConnect({ onAccountChange }: WalletConnectProps) {
       const xumm = new XummPkce(apiKey as string) as unknown as XummInstance
       xummRef.current = xumm
 
-      xumm.on('success', async () => {
+      const handleSession = async () => {
         const state = await xumm.state()
         updateAccount(state?.me?.account ?? null)
         setConnecting(false)
-      })
+      }
+
+      xumm.on('success', handleSession)
+      xumm.on('retrieved', handleSession)
 
       xumm.on('error', () => {
         setConnecting(false)
