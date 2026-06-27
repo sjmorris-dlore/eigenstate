@@ -639,6 +639,8 @@ export default function AdminPage() {
   const [uploadingEpilogue, setUploadingEpilogue] = useState(false)
   const [announcing, setAnnouncing] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [resettingGame, setResettingGame] = useState(false)
+  const [resetGameStatus, setResetGameStatus] = useState('')
 
   const [editingChoicePoint, setEditingChoicePoint] = useState<string | null>(null)
   const [editingChapterData, setEditingChapterData] = useState<ChapterData | null>(null)
@@ -803,8 +805,8 @@ export default function AdminPage() {
     setAnnouncing(false)
   }
 
-  async function resetGame() {
-    if (!confirm(`Reset game? This increments reset_version and reopens voting for ${resetHours}h.`)) return
+  async function resetChapter() {
+    if (!confirm(`Reset chapter? This increments reset_version and reopens voting for ${resetHours}h.`)) return
     setResetting(true)
     setResetStatus('')
     try {
@@ -820,6 +822,21 @@ export default function AdminPage() {
       } else setResetStatus(`Error: ${data.error}`)
     } catch { setResetStatus('Error: Request failed.') }
     setResetting(false)
+  }
+
+  async function resetFullGame() {
+    if (!confirm('Reset the entire game? This will:\n• Increment reset_version (old votes and NFT taxons are retired)\n• Clear all tally caches\n• Remove the active chapter (site goes dormant until you make a chapter live)\n\nThis cannot be undone.')) return
+    setResettingGame(true)
+    setResetGameStatus('')
+    try {
+      const res = await fetch('/api/admin/reset-game', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        setResetGameStatus(`Game reset. New rv=${data.reset_version}. Winner taxon ${data.winner_taxon}, participation ${data.participation_taxon}. Make a chapter live to restart.`)
+        await loadData()
+      } else setResetGameStatus(`Error: ${data.error}`)
+    } catch { setResetGameStatus('Error: Request failed.') }
+    setResettingGame(false)
   }
 
   const total = tally ? Object.values(tally.counts).reduce((a, b) => a + b, 0) : 0
@@ -1072,11 +1089,23 @@ export default function AdminPage() {
                     <input type="number" value={resetHours} onChange={e => setResetHours(Number(e.target.value))} min={1} max={168}
                       className="w-20 rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500" />
                   </div>
-                  <button onClick={resetGame} disabled={resetting || !chapter}
+                  <button onClick={resetChapter} disabled={resetting || !chapter}
                     className="mt-2 rounded bg-red-600 px-3 py-1.5 text-xs text-white hover:bg-red-500 disabled:opacity-40 dark:bg-red-900 dark:hover:bg-red-800">
-                    {resetting ? 'Resetting…' : 'Reset Game'}
+                    {resetting ? 'Resetting…' : 'Reset Chapter'}
                   </button>
                   <ActionStatus message={resetStatus} />
+                </div>
+                <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                  <p className="mb-2 text-xs text-zinc-500">
+                    Full game reset — retires all tally caches, increments reset_version (new NFT taxon generation),
+                    and clears the active chapter. Use after distributing NFTs at the end of a universe run.
+                    Make a chapter live afterward to start the next round.
+                  </p>
+                  <button onClick={resetFullGame} disabled={resettingGame}
+                    className="rounded bg-red-800 px-3 py-1.5 text-xs text-white hover:bg-red-700 disabled:opacity-40 dark:bg-red-950 dark:hover:bg-red-900">
+                    {resettingGame ? 'Resetting…' : 'Reset Game'}
+                  </button>
+                  <ActionStatus message={resetGameStatus} />
                 </div>
               </div>
             </Section>
