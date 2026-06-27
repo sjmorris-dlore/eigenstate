@@ -74,8 +74,17 @@ export default function Vote({ account }: VoteProps) {
   const [signUrl, setSignUrl] = useState<string | null>(null)
   const [voted, setVoted] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [myVote, setMyVote] = useState<{ choice: string; label: string | null } | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const signRef = useRef<HTMLDivElement>(null)
+
+  const fetchMyVote = useCallback(async () => {
+    const res = await fetch(`/api/my-vote?account=${encodeURIComponent(account)}`)
+    if (res.ok) {
+      const data = await res.json()
+      setMyVote(data.choice ? data : null)
+    }
+  }, [account])
 
   useEffect(() => {
     if (qr) signRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -95,10 +104,11 @@ export default function Vote({ account }: VoteProps) {
 
   useEffect(() => {
     loadChapter()
+    fetchMyVote()
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [loadChapter])
+  }, [loadChapter, fetchMyVote])
 
   const castVote = async (choice: string) => {
     if (!chapter) return
@@ -145,6 +155,7 @@ export default function Vote({ account }: VoteProps) {
         setPending(null)
         setQr(null)
         setSignUrl(null)
+        fetchMyVote()
       } else if (s.expired || s.rejected) {
         clearInterval(intervalRef.current!)
         setPending(null)
@@ -233,7 +244,7 @@ export default function Vote({ account }: VoteProps) {
         </p>
         <p className="text-sm text-zinc-500">{choiceLabel}</p>
         <button
-          onClick={() => setVoted(null)}
+          onClick={() => { setVoted(null); fetchMyVote() }}
           className="mt-2 text-xs text-zinc-400 underline hover:text-zinc-600 dark:hover:text-zinc-300"
         >
           Change observation
@@ -258,6 +269,14 @@ export default function Vote({ account }: VoteProps) {
           </div>
         )}
         <ChapterTimer className="mt-2" />
+        {myVote && (
+          <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+            Your current vote:{' '}
+            <span className="font-semibold text-zinc-600 dark:text-zinc-300">
+              {myVote.label ?? myVote.choice}
+            </span>
+          </p>
+        )}
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
         <p className="mt-5 rounded-lg bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
           Signing a vote sends 1 drop of XRP, or 0.000001 XRP, to the Eigenthrope vault and pays
