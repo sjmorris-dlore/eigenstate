@@ -7,17 +7,19 @@ interface ArtifactOffer {
   choice_point: string
   nft_uri: string
   expires_at: string
+  artifact_type?: string
 }
 
 interface ArtifactClaimProps {
   account: string
+  onClaimed?: () => void
 }
 
-export default function ArtifactClaim({ account }: ArtifactClaimProps) {
-  const [offer, setOffer] = useState<ArtifactOffer | null>(null)
+export default function ArtifactClaim({ account, onClaimed }: ArtifactClaimProps) {
+  const [claims, setClaims] = useState<ArtifactOffer[]>([])
+  const [claimedCount, setClaimedCount] = useState(0)
   const [qr, setQr] = useState<string | null>(null)
   const [signUrl, setSignUrl] = useState<string | null>(null)
-  const [claimed, setClaimed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -25,7 +27,7 @@ export default function ArtifactClaim({ account }: ArtifactClaimProps) {
     fetch(`/api/artifact?account=${encodeURIComponent(account)}`)
       .then(r => r.json())
       .then(data => {
-        if (data.claims?.length > 0) setOffer(data.claims[0])
+        if (data.claims?.length > 0) setClaims(data.claims)
       })
       .catch(() => null)
 
@@ -33,6 +35,8 @@ export default function ArtifactClaim({ account }: ArtifactClaimProps) {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [account])
+
+  const offer = claims[0] ?? null
 
   const claim = async () => {
     if (!offer) return
@@ -61,14 +65,14 @@ export default function ArtifactClaim({ account }: ArtifactClaimProps) {
         clearInterval(intervalRef.current!)
         setQr(null)
         setSignUrl(null)
-        // Mark claimed in DB
         await fetch('/api/artifact/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ offer_id: offer.offer_id }),
         })
-        setClaimed(true)
-        setOffer(null)
+        setClaims(prev => prev.slice(1))
+        setClaimedCount(prev => prev + 1)
+        onClaimed?.()
       } else if (s.expired || s.rejected) {
         clearInterval(intervalRef.current!)
         setQr(null)
@@ -83,11 +87,15 @@ export default function ArtifactClaim({ account }: ArtifactClaimProps) {
     setSignUrl(null)
   }
 
-  if (claimed) {
+  if (claimedCount > 0 && claims.length === 0) {
     return (
       <div className="w-full max-w-sm rounded-xl border border-zinc-200 p-4 text-center dark:border-zinc-700">
-        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Artifact claimed.</p>
-        <p className="mt-1 text-xs text-zinc-500">It now lives in your wallet.</p>
+        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          {claimedCount === 1 ? 'Artifact claimed.' : `${claimedCount} artifacts claimed.`}
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          {claimedCount === 1 ? 'It now lives in your wallet.' : 'They now live in your wallet.'}
+        </p>
       </div>
     )
   }
@@ -109,11 +117,17 @@ export default function ArtifactClaim({ account }: ArtifactClaimProps) {
 
   if (!offer) return null
 
+  const artifactLabel = offer.artifact_type === 'winner' ? 'Winner' : 'Participant'
+  const remaining = claims.length
+
   return (
     <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
-      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Artifact Available</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+        {remaining > 1 ? `${remaining} Artifacts Available` : 'Artifact Available'}
+      </p>
       <p className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-        You have an unclaimed artifact from {offer.choice_point}.
+        {artifactLabel} artifact from {offer.choice_point}.
+        {remaining > 1 && <span className="ml-1 text-zinc-500">(1 of {remaining})</span>}
       </p>
       <p className="mt-1 text-xs text-zinc-500">
         Expires {new Date(offer.expires_at).toLocaleDateString()}
@@ -126,7 +140,7 @@ export default function ArtifactClaim({ account }: ArtifactClaimProps) {
         onClick={claim}
         className="mt-3 w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
       >
-        Claim Artifact
+        Claim {artifactLabel} Artifact
       </button>
     </div>
   )

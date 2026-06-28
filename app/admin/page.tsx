@@ -676,7 +676,7 @@ export default function AdminPage() {
         const mintRes = await fetch(`/api/admin/mint-status?choice_point=${encodeURIComponent(data.choice_point)}`)
         if (mintRes.ok) {
           const s = await mintRes.json() as { total: number; minted: number; offered: number }
-          if (s.total > 0) setMintPollStatus(`${s.total} total — ${s.minted} minted, ${s.offered} offered`)
+          if (s.total > 0) setMintPollStatus(`${s.total} total — ${s.minted} awaiting offer, ${s.offered} offered`)
         }
       } else {
         setLoadError('No active chapter found.')
@@ -857,7 +857,7 @@ export default function AdminPage() {
         const res = await fetch(`/api/admin/mint-status?choice_point=${encodeURIComponent(choicePoint)}`)
         if (!res.ok) return
         const s = await res.json() as { total: number; minted: number; offered: number }
-        setMintPollStatus(`${s.total} total — ${s.minted} minted, ${s.offered} offered`)
+        setMintPollStatus(`${s.total} total — ${s.minted} awaiting offer, ${s.offered} offered`)
         // Only stop when total > 0 and counts have been stable for 3 polls
         if (s.total > 0 && s.total === prev.total && s.minted === prev.minted && s.offered === prev.offered) {
           stableCount++
@@ -877,6 +877,7 @@ export default function AdminPage() {
     if (!confirm(`Mint NFTs for "${chapter.chapter_label}"? This will invoke the Lambda and cannot be undone.`)) return
     setMintingNFTs(true)
     setMintStatus('')
+    setOfferStatus('')
     setMintPollStatus('')
     try {
       const res = await fetch('/api/admin/mint-nfts', {
@@ -897,6 +898,7 @@ export default function AdminPage() {
     if (!chapter) return
     if (!confirm(`Create sell offers for minted NFTs in "${chapter.chapter_label}"?`)) return
     setCreatingOffers(true)
+    setMintStatus('')
     setOfferStatus('')
     setMintPollStatus('')
     try {

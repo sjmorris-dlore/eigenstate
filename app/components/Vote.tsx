@@ -43,8 +43,8 @@ function StoryText({ text }: { text: string }) {
   )
 }
 
-function CollapsibleStory({ text }: { text: string }) {
-  const [collapsed, setCollapsed] = useState(false)
+function CollapsibleStory({ text, defaultCollapsed = false }: { text: string; defaultCollapsed?: boolean }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
   return (
     <div className="w-full rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between px-8 pt-6 sm:px-12">
@@ -195,6 +195,7 @@ export default function Vote({ account }: VoteProps) {
         <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">
           {chapter.chapter_label}
         </p>
+        {chapter.story_text && <CollapsibleStory text={chapter.story_text} defaultCollapsed />}
         {chapter.outcome_text ? (
           <StoryText text={chapter.outcome_text} />
         ) : (

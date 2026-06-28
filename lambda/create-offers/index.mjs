@@ -32,8 +32,8 @@ export async function handler(event) {
   const secretValue = await sm.send(new GetSecretValueCommand({
     SecretId: process.env.VAULT_SECRET_NAME ?? 'eigenthrope/vault',
   }))
-  const { seed } = JSON.parse(secretValue.SecretString)
-  const wallet = Wallet.fromSeed(seed)
+  const { entropy, algorithm } = JSON.parse(secretValue.SecretString)
+  const wallet = Wallet.fromEntropy(Buffer.from(entropy, 'hex'), { algorithm })
 
   const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }))
 
