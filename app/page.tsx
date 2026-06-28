@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import App from '@/app/components/App'
 import ChapterTimer from '@/app/components/ChapterTimer'
 
@@ -17,12 +18,16 @@ export default function Home() {
 
         <App />
 
-        <div className="flex gap-4 text-sm text-zinc-400">
+        <div className="flex flex-wrap justify-center gap-4 text-sm text-zinc-400">
           <span>Universe 1</span>
           <span>·</span>
           <span>1960s</span>
           <span>·</span>
           <span>XRP Ledger</span>
+          <span>·</span>
+          <Link href="/terms" className="hover:text-zinc-600 dark:hover:text-zinc-300">Terms</Link>
+          <span>·</span>
+          <Link href="/privacy" className="hover:text-zinc-600 dark:hover:text-zinc-300">Privacy</Link>
         </div>
       </main>
     </div>
