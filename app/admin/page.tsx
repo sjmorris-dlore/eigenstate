@@ -655,6 +655,7 @@ export default function AdminPage() {
   const [mintStatus, setMintStatus] = useState('')
   const [creatingOffers, setCreatingOffers] = useState(false)
   const [offerStatus, setOfferStatus] = useState('')
+  const [mintPollStatus, setMintPollStatus] = useState('')
 
   const [editingChoicePoint, setEditingChoicePoint] = useState<string | null>(null)
   const [editingChapterData, setEditingChapterData] = useState<ChapterData | null>(null)
@@ -836,12 +837,35 @@ export default function AdminPage() {
     setClosingChapter(false)
   }
 
+  function startMintPolling(choicePoint: string) {
+    setMintPollStatus('Waiting for Lambda…')
+    let prev = { total: 0, minted: 0, offered: 0 }
+    let stableCount = 0
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/mint-status?choice_point=${encodeURIComponent(choicePoint)}`)
+        if (!res.ok) return
+        const s = await res.json() as { total: number; minted: number; offered: number }
+        setMintPollStatus(`${s.total} total — ${s.minted} minted, ${s.offered} offered`)
+        if (s.total > 0 && s.total === prev.total && s.minted === prev.minted && s.offered === prev.offered) {
+          stableCount++
+          if (stableCount >= 3) clearInterval(id)
+        } else {
+          stableCount = 0
+        }
+        prev = s
+      } catch {}
+    }, 4000)
+    return id
+  }
+
   async function mintNFTs() {
     if (!chapter) return
     if (chapter.status !== 'closed') { setMintStatus('Error: Chapter must be closed first.'); return }
     if (!confirm(`Mint NFTs for "${chapter.chapter_label}"? This will invoke the Lambda and cannot be undone.`)) return
     setMintingNFTs(true)
     setMintStatus('')
+    setMintPollStatus('')
     try {
       const res = await fetch('/api/admin/mint-nfts', {
         method: 'POST',
@@ -849,8 +873,10 @@ export default function AdminPage() {
         body: JSON.stringify({ choice_point: chapter.choice_point }),
       })
       const data = await res.json()
-      if (res.ok) setMintStatus('Minting started. Check Lambda logs for progress.')
-      else setMintStatus(`Error: ${data.error}`)
+      if (res.ok) {
+        setMintStatus('Step 1 started.')
+        startMintPolling(chapter.choice_point)
+      } else setMintStatus(`Error: ${data.error}`)
     } catch { setMintStatus('Error: Request failed.') }
     setMintingNFTs(false)
   }
@@ -860,6 +886,7 @@ export default function AdminPage() {
     if (!confirm(`Create sell offers for minted NFTs in "${chapter.chapter_label}"?`)) return
     setCreatingOffers(true)
     setOfferStatus('')
+    setMintPollStatus('')
     try {
       const res = await fetch('/api/admin/create-offers', {
         method: 'POST',
@@ -867,8 +894,10 @@ export default function AdminPage() {
         body: JSON.stringify({ choice_point: chapter.choice_point }),
       })
       const data = await res.json()
-      if (res.ok) setOfferStatus('Offer creation started. Check Lambda logs for progress.')
-      else setOfferStatus(`Error: ${data.error}`)
+      if (res.ok) {
+        setOfferStatus('Step 2 started.')
+        startMintPolling(chapter.choice_point)
+      } else setOfferStatus(`Error: ${data.error}`)
     } catch { setOfferStatus('Error: Request failed.') }
     setCreatingOffers(false)
   }
@@ -1258,6 +1287,9 @@ export default function AdminPage() {
                     </button>
                   </div>
                   <ActionStatus message={mintStatus || offerStatus} />
+                  {mintPollStatus && (
+                    <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">{mintPollStatus}</p>
+                  )}
                 </div>
                 <div>
                   <p className="mb-2 text-xs text-zinc-500">
