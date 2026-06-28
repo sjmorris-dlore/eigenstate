@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import WalletConnect from '@/app/components/WalletConnect'
 
 const XRPL_RPC = 'https://xrplcluster.com/'
-const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS
+const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS ?? 'rwU5e8C8sBjgDfuYwLGwTe9zAnf5TYxrsn'
 
 interface XrplNFT {
   NFTokenID: string
