@@ -119,6 +119,9 @@ export default function ArtifactClaim({ account }: ArtifactClaimProps) {
         Expires {new Date(offer.expires_at).toLocaleDateString()}
       </p>
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+      <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+        Xaman will show a warning — this is normal for free NFT transfers. No XRP will leave your wallet.
+      </p>
       <button
         onClick={claim}
         className="mt-3 w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"

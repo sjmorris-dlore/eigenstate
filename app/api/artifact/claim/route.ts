@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Xaman credentials not configured' }, { status: 500 })
   }
 
+  const artifactType = item.Item.artifact_type === 'winner' ? 'Winner' : 'Participant'
   const payload = {
     txjson: {
       TransactionType: 'NFTokenAcceptOffer',
@@ -40,7 +41,17 @@ export async function POST(request: Request) {
       SourceTag: 2606230005,
     },
     custom_meta: {
-      instruction: `Claim your Eigenthrope artifact from ${item.Item.choice_point}`,
+      identifier: 'eigenthrope_claim',
+      instruction: `Accept your free ${artifactType} artifact from Eigenthrope (${item.Item.choice_point}). No XRP will leave your wallet — this is a gift from the game vault.`,
+      blob: JSON.stringify({
+        app: 'Eigenthrope',
+        type: artifactType,
+        choice_point: item.Item.choice_point,
+      }),
+    },
+    options: {
+      submit: true,
+      expire: 10,
     },
   }
 
