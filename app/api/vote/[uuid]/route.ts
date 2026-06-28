@@ -22,5 +22,6 @@ export async function GET(
     signed: data.meta?.signed ?? false,
     expired: data.meta?.expired ?? false,
     rejected: data.meta?.cancelled ?? false,
+    dispatched_result: data.response?.dispatched_result ?? null,
   })
 }

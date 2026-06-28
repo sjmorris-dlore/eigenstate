@@ -65,14 +65,18 @@ export default function ArtifactClaim({ account, onClaimed }: ArtifactClaimProps
         clearInterval(intervalRef.current!)
         setQr(null)
         setSignUrl(null)
-        await fetch('/api/artifact/confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ offer_id: offer.offer_id }),
-        })
-        setClaims(prev => prev.slice(1))
-        setClaimedCount(prev => prev + 1)
-        onClaimed?.()
+        if (s.dispatched_result && s.dispatched_result !== 'tesSUCCESS') {
+          setError(`Transaction rejected by XRPL: ${s.dispatched_result}. Make sure you open this page with the correct wallet.`)
+        } else {
+          await fetch('/api/artifact/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ offer_id: offer.offer_id }),
+          })
+          setClaims(prev => prev.slice(1))
+          setClaimedCount(prev => prev + 1)
+          onClaimed?.()
+        }
       } else if (s.expired || s.rejected) {
         clearInterval(intervalRef.current!)
         setQr(null)
