@@ -37,6 +37,7 @@ export async function POST(request: Request) {
   const payload = {
     txjson: {
       TransactionType: 'NFTokenAcceptOffer',
+      Account: item.Item.winner_address,
       NFTokenSellOffer: offer_id,
       SourceTag: 2606230005,
     },
