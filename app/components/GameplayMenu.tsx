@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 export default function GameplayMenu() {
   return (
     <details className="group relative">
@@ -29,6 +31,14 @@ export default function GameplayMenu() {
             <p className="font-medium text-zinc-900 dark:text-zinc-50">5. Trade</p>
             <p className="mt-1">Artifacts are standard XRP Ledger NFTs. Hold them to build Resonance or trade them on any XRPL NFT marketplace.</p>
           </div>
+        </div>
+        <div className="border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          <Link
+            href="/wallet"
+            className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            Manage artifacts →
+          </Link>
         </div>
       </div>
     </details>
