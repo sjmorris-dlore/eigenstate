@@ -885,7 +885,9 @@ export default function AdminPage() {
         const res = await fetch(`/api/admin/mint-status?choice_point=${encodeURIComponent(choicePoint)}`)
         if (!res.ok) return
         const s = await res.json() as { total: number; minted: number; offered: number }
-        setMintPollStatus(`${s.total} total — ${s.minted} awaiting offer, ${s.offered} offered`)
+        if (s.total > 0) {
+          setMintPollStatus(`${s.total} total — ${s.minted} awaiting offer, ${s.offered} offered`)
+        }
         // Only stop when total > 0 and counts have been stable for 3 polls
         if (s.total > 0 && s.total === prev.total && s.minted === prev.minted && s.offered === prev.offered) {
           stableCount++
