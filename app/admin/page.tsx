@@ -239,7 +239,7 @@ function ImageSlot({
     try {
       const res = await fetch('/api/admin/upload-nft-image', { method: 'POST', body: form })
       const data = await res.json()
-      if (res.ok) { setStatus(`Pinned: ${data.cid}`); onRefresh() }
+      if (res.ok) { setStatus(`Pinned: ${data.metadataCid ?? data.cid ?? 'ok'}`); onRefresh() }
       else setStatus(`Error: ${data.error}`)
     } catch { setStatus('Error: Upload failed.') }
     setUploading(false)
