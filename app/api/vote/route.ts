@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
   const payload = {
     txjson: {
       TransactionType: 'Payment',
+      Account: account.trim(),
       Destination: vaultAddress,
       Amount: '1',
       SourceTag: SOURCE_TAG,

@@ -1,4 +1,4 @@
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb'
+import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import { dynamo } from '@/lib/dynamo'
 import { putImageFile, STORIES_BUCKET } from '@/lib/s3'
 
@@ -56,8 +56,44 @@ export async function POST(request: Request) {
     return Response.json({ error: `Pinata error: ${err}` }, { status: 500 })
   }
 
-  const { IpfsHash: cid } = await pinataRes.json() as { IpfsHash: string }
-  const uri = `ipfs://${cid}`
+  const { IpfsHash: imageCid } = await pinataRes.json() as { IpfsHash: string }
+  const imageUri = `ipfs://${imageCid}`
+
+  // Fetch chapter label so the NFT metadata has a human-readable name
+  const chapterItem = await dynamo.send(new GetCommand({
+    TableName: 'eigenthrope_chapters',
+    Key: { choice_point: choicePoint },
+  }))
+  const chapterLabel = (chapterItem.Item as Record<string, unknown>)?.chapter_label as string | undefined ?? choicePoint
+  const artifactLabel = type === 'winner' ? 'Winner' : 'Participation'
+
+  const metadata = {
+    name: `Eigenthrope ${artifactLabel} Artifact — ${chapterLabel}`,
+    description: type === 'winner'
+      ? `Awarded to an Eigenthrope observer who voted for the winning choice in ${chapterLabel}.`
+      : `Awarded to an Eigenthrope observer who voted in ${chapterLabel}.`,
+    image: imageUri,
+  }
+
+  const metadataRes = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwt}`,
+    },
+    body: JSON.stringify({
+      pinataContent: metadata,
+      pinataMetadata: { name: `${choicePoint}-${type}-metadata` },
+    }),
+  })
+
+  if (!metadataRes.ok) {
+    const err = await metadataRes.text()
+    return Response.json({ error: `Pinata metadata error: ${err}` }, { status: 500 })
+  }
+
+  const { IpfsHash: metadataCid } = await metadataRes.json() as { IpfsHash: string }
+  const metadataUri = `ipfs://${metadataCid}`
 
   const nftField = type === 'winner' ? 'winner_nft_uri' : 'participation_nft_uri'
   const imgField = type === 'winner' ? 'winner_image_key' : 'participation_image_key'
@@ -66,8 +102,8 @@ export async function POST(request: Request) {
     TableName: 'eigenthrope_chapters',
     Key: { choice_point: choicePoint },
     UpdateExpression: `SET ${nftField} = :uri, ${imgField} = :key`,
-    ExpressionAttributeValues: { ':uri': uri, ':key': s3Key },
+    ExpressionAttributeValues: { ':uri': metadataUri, ':key': s3Key },
   }))
 
-  return Response.json({ uri, cid, s3_key: s3Key })
+  return Response.json({ uri: metadataUri, imageCid, metadataCid, s3_key: s3Key })
 }
