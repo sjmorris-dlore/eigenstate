@@ -8,6 +8,7 @@ import ChapterTimer from './ChapterTimer'
 
 interface VoteProps {
   account: string
+  onVoted?: () => void
 }
 
 const storyComponents: Components = {
@@ -67,7 +68,7 @@ function CollapsibleStory({ text, defaultCollapsed = false }: { text: string; de
   )
 }
 
-export default function Vote({ account }: VoteProps) {
+export default function Vote({ account, onVoted }: VoteProps) {
   const [chapter, setChapter] = useState<ChapterData | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const [qr, setQr] = useState<string | null>(null)
@@ -156,6 +157,7 @@ export default function Vote({ account }: VoteProps) {
         setQr(null)
         setSignUrl(null)
         fetchMyVote()
+        onVoted?.()
       } else if (s.expired || s.rejected) {
         clearInterval(intervalRef.current!)
         setPending(null)

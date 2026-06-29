@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import WalletConnect from './WalletConnect'
 import ObserverProfile from './ObserverProfile'
 import ArtifactClaim from './ArtifactClaim'
@@ -19,17 +19,18 @@ export default function App() {
   const [tally, setTally] = useState<TallyData | null>(null)
   const [profileEpoch, setProfileEpoch] = useState(0)
 
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await fetch('/api/tally')
-        if (res.ok) setTally(await res.json())
-      } catch { /* ignore */ }
-    }
-    poll()
-    const id = setInterval(poll, 15000)
-    return () => clearInterval(id)
+  const refreshTally = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tally')
+      if (res.ok) setTally(await res.json())
+    } catch { /* ignore */ }
   }, [])
+
+  useEffect(() => {
+    refreshTally()
+    const id = setInterval(refreshTally, 5000)
+    return () => clearInterval(id)
+  }, [refreshTally])
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -39,7 +40,7 @@ export default function App() {
         {/* Main reading column */}
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           {account && <ArtifactClaim key={account} account={account} onClaimed={() => setProfileEpoch(e => e + 1)} />}
-          {account && <Vote key={account} account={account} />}
+          {account && <Vote key={account} account={account} onVoted={refreshTally} />}
           <Tally tally={tally} />
         </div>
 
