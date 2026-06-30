@@ -7,7 +7,7 @@ import type { ChapterData } from '@/app/api/chapter/route'
 import ChapterTimer from './ChapterTimer'
 
 interface VoteProps {
-  account: string
+  account?: string | null
   onVoted?: () => void
 }
 
@@ -80,6 +80,7 @@ export default function Vote({ account, onVoted }: VoteProps) {
   const signRef = useRef<HTMLDivElement>(null)
 
   const fetchMyVote = useCallback(async () => {
+    if (!account) { setMyVote(null); return }
     const res = await fetch(`/api/my-vote?account=${encodeURIComponent(account)}`)
     if (res.ok) {
       const data = await res.json()
@@ -262,45 +263,53 @@ export default function Vote({ account, onVoted }: VoteProps) {
         {chapter.chapter_label}
       </p>
       {chapter.story_text && <CollapsibleStory text={chapter.story_text} />}
-      <div className="w-full rounded-xl border border-zinc-200 bg-white px-8 py-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">
-          Collapse the Wave
-        </p>
-        {chapter.choice_intro_text && (
-          <div className="mt-1">
-            <ReactMarkdown components={storyComponents}>{chapter.choice_intro_text}</ReactMarkdown>
-          </div>
-        )}
-        <ChapterTimer className="mt-2" />
-        {myVote && (
-          <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
-            Your current vote:{' '}
-            <span className="font-semibold text-zinc-600 dark:text-zinc-300">
-              {myVote.label ?? myVote.choice}
-            </span>
+      {account ? (
+        <div className="w-full rounded-xl border border-zinc-200 bg-white px-8 py-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400">
+            Collapse the Wave
           </p>
-        )}
-        {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-        <p className="mt-5 rounded-lg bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
-          Signing a vote sends 1 drop of XRP, or 0.000001 XRP, to the Eigenthrope vault and pays
-          the tiny XRPL network fee shown in Xaman. If 1 XRP were worth $1, 1 drop would be
-          $0.000001.
-        </p>
-        <div className="mt-6 flex flex-col gap-3">
-          {Object.entries(chapter.choices).map(([id, choice]) => (
-            <button
-              key={id}
-              onClick={() => castVote(id)}
-              disabled={pending !== null}
-              className="flex flex-col gap-1 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            >
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Choice {id}</span>
-              <span className="font-medium text-zinc-900 dark:text-zinc-50">{choice.label}</span>
-              <span className="text-sm text-zinc-500 dark:text-zinc-400">{choice.description}</span>
-            </button>
-          ))}
+          {chapter.choice_intro_text && (
+            <div className="mt-1">
+              <ReactMarkdown components={storyComponents}>{chapter.choice_intro_text}</ReactMarkdown>
+            </div>
+          )}
+          <ChapterTimer className="mt-2" />
+          {myVote && (
+            <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+              Your current vote:{' '}
+              <span className="font-semibold text-zinc-600 dark:text-zinc-300">
+                {myVote.label ?? myVote.choice}
+              </span>
+            </p>
+          )}
+          {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+          <p className="mt-5 rounded-lg bg-zinc-50 px-4 py-3 text-xs leading-5 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+            Signing a vote sends 1 drop of XRP, or 0.000001 XRP, to the Eigenthrope vault and pays
+            the tiny XRPL network fee shown in Xaman. If 1 XRP were worth $1, 1 drop would be
+            $0.000001.
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            {Object.entries(chapter.choices).map(([id, choice]) => (
+              <button
+                key={id}
+                onClick={() => castVote(id)}
+                disabled={pending !== null}
+                className="flex flex-col gap-1 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Choice {id}</span>
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">{choice.label}</span>
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">{choice.description}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="w-full rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-8 py-6 text-center dark:border-zinc-700 dark:bg-zinc-900">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Connect your Xaman wallet above to cast your vote and collapse the wave.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

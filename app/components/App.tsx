@@ -40,7 +40,7 @@ export default function App() {
         {/* Main reading column */}
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           {account && <ArtifactClaim key={account} account={account} onClaimed={() => setProfileEpoch(e => e + 1)} />}
-          {account && <Vote key={account} account={account} onVoted={refreshTally} />}
+          <Vote key={account ?? 'anon'} account={account} onVoted={refreshTally} />
           <Tally tally={tally} />
         </div>
 
