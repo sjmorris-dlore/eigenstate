@@ -889,10 +889,11 @@ export default function AdminPage() {
         if (s.total > 0) {
           setMintPollStatus(`${s.total} total — ${s.minted} awaiting offer, ${s.offered} offered`)
         }
-        // Only stop when total > 0 and counts have been stable for 3 polls
+        // Stop when counts have been stable for 20 polls (~80s) — Lambda mints sequentially,
+        // each XRPL transaction takes 4-6s, so a small voter set needs up to ~30s to finish.
         if (s.total > 0 && s.total === prev.total && s.minted === prev.minted && s.offered === prev.offered) {
           stableCount++
-          if (stableCount >= 3) clearInterval(id)
+          if (stableCount >= 20) clearInterval(id)
         } else {
           stableCount = 0
         }
@@ -1328,9 +1329,9 @@ export default function AdminPage() {
                 <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
                   <p className="mb-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">NFT Distribution</p>
                   <p className="mb-3 text-xs text-zinc-500">
-                    Chapter must be closed. Step 1 mints NFTs to the vault and records them.
-                    Step 2 creates sell offers to each winner — this is what triggers the claim UI.
-                    Check Lambda logs in AWS CloudWatch for progress.
+                    Chapter must be closed. Step 1 mints NFTs to the vault — wait for the tally
+                    below to stabilize before running Step 2. Step 2 creates sell offers and triggers
+                    the claim UI; it is safe to run multiple times if the count looks low.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <button
